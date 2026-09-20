@@ -1,6 +1,8 @@
 package edu.unimag.pulsepass.persistence.domain;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +13,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Entity 
@@ -52,6 +56,14 @@ public class Event {
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue; 
 
+    @ManyToMany 
+    @JoinTable( 
+                name = "event_artists", 
+                joinColumns = @JoinColumn(name = "event_id"),
+                inverseJoinColumns = @JoinColumn(name = "artist_id"))
+        
+        private Set<Artist> artists = new HashSet<>(); 
+
     protected Event() {
 
     }
@@ -83,6 +95,9 @@ public class Event {
     public int getMinimumAge() { return minimumAge; }
     public String getStreamingUrl() { return streamingUrl; }
     public Venue getVenue() { return venue; }
+    public Set<Artist> getArtists() { return artists; }
+    public void addArtist(Artist artist) { this.artists.add(artist); }
+    public void removeArtist(Artist artist) { this.artists.remove(artist); }
 
     public void setName(String name) { this.name = name; }
     public void setDescription(String description) { this.description = description; }

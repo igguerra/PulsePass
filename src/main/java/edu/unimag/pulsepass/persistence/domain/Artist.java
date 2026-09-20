@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity 
-@Table(name = "Artists")
+@Table(name = "artists")
 public class Artist {
 
     @Id 
@@ -58,15 +58,15 @@ public class Artist {
 
     @Override 
     public boolean equals(Object o) {
-        if (this == o) {
-            return true; 
-        }
+    if (this == o) {
+        return true;
+    }
 
-        if (!(o instanceof Artist other)) {
-            return true; 
-        }else{
-            return stageName != null && stageName.equals(other.getStageName());
-        }
+    if (!(o instanceof Artist other)) {
+        return false;
+    }
+    return stageName != null && stageName.equals(other.getStageName());
+    
     }
 
     @Override 

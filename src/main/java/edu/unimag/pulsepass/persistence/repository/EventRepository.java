@@ -23,6 +23,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // FR-VEN-004: Spring navega la relación: venue.code
     List<Event> findByVenueCode(String venueCode); 
 
+    // BR-EVENT-001: código único
+    boolean existsByEventCode(String eventCode);
+
     // FR-SRC-001 / FR-ART-004: eventos de un artista (sin duplicados)
     @Query("""
             SELECT DISTINCT e FROM Event e

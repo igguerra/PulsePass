@@ -2,6 +2,7 @@ package edu.unimag.pulsepass.persistence.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // FR-TKT-007: tickets PAID (o cualquier estado) de un evento, por eventCode
     List<Ticket> findByEventEventCodeAndStatus(String eventCode, TicketStatus status);
+
+    Optional<Ticket> findByTicketCode(String ticketCode);
+
+    // FR-SVC-015: tickets de un usuario, del más reciente al más antiguo
+    List<Ticket> findByUserEmailIgnoreCaseOrderByPurchaseDateDesc(String email);
 
     // FR-TKT-008 / AC-008: conteo de tickets PAID de un evento (solo cuentan los PAID)
     @Query("""

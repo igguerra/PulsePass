@@ -26,7 +26,7 @@ import edu.unimag.pulsepass.persistence.repository.TicketRepository;
 import edu.unimag.pulsepass.persistence.repository.UserRepository;
 import edu.unimag.pulsepass.persistence.repository.VenueRepository;
 
-@SuppressWarnings("null")
+//@SuppressWarnings("null")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Transactional

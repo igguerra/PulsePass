@@ -1,8 +1,29 @@
-# PulsePass — Capa de persistencia
+# PulsePass
 
-Caso de estudio académico: capa de persistencia de **PulsePass**, una plataforma de eventos, artistas y entradas. El proyecto cubre únicamente el dominio, la base de datos y las pruebas de integración; no incluye API REST, capa de servicios, autenticación, pagos ni frontend (ver el PRD, secciones 2.4 y 18).
+Caso de estudio académico: backend de **PulsePass**, una plataforma de eventos, artistas y entradas, construido de forma incremental en tres fases:
+
+| Fase | Capa | Qué aporta |
+|---|---|---|
+| 1 | Persistencia | Modelo relacional, entidades JPA, repositories, migraciones Flyway y pruebas de integración con PostgreSQL real |
+| 2 | Servicios | Reglas de negocio, DTOs, mappers con MapStruct, transacciones, excepciones propias y unit tests |
+| 3 | Controladores REST | Endpoints HTTP, validación de entrada, códigos de respuesta, manejo global de errores y pruebas con MockMvc |
+
+Queda fuera del alcance: autenticación y autorización, pagos, frontend, paginación, OpenAPI y pruebas E2E.
+
+**Tecnologías:** Java 21, Spring Boot 4, Spring MVC, Spring Data JPA, Bean Validation, PostgreSQL, Flyway, MapStruct, JUnit 5, Mockito, MockMvc y Testcontainers.
 
 **Integrantes:** Isabella Guerra ([@igguerra](https://github.com/igguerra)) y Valeria Gamez ([@valegzt](https://github.com/valegzt))
+
+## Contenido
+
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Modelo de dominio](#modelo-de-dominio)
+- [Migraciones (Flyway)](#migraciones-flyway)
+- [Consultas](#consultas)
+- [Capa de servicios](#capa-de-servicios)
+- [API REST](#api-rest)
+- [Pruebas](#pruebas)
+- [Flujo de trabajo del equipo](#flujo-de-trabajo-del-equipo)
 
 ## Estructura del proyecto
 
@@ -10,13 +31,32 @@ Caso de estudio académico: capa de persistencia de **PulsePass**, una plataform
 src/
 ├── main/
 │   ├── java/edu/unimag/pulsepass/persistence/
-│   │   ├── domain/        Entidades JPA y enums
-│   │   └── repository/    Repositories (JpaRepository)
+│   │   ├── controller/    Controllers REST (uno por recurso)
+│   │   ├── service/       Interfaces de servicio y TicketPriceCalculator
+│   │   │   └── impl/      Implementaciones con las reglas de negocio
+│   │   ├── dto/
+│   │   │   ├── request/   CreateEventRequest, RegisterUserRequest, PurchaseTicketRequest
+│   │   │   └── response/  DTOs de salida y ErrorResponse
+│   │   ├── mapper/        Mappers MapStruct (entidad -> DTO)
+│   │   ├── exception/     Excepciones de negocio y GlobalExceptionHandler
+│   │   ├── repository/    Repositories (JpaRepository)
+│   │   └── domain/        Entidades JPA y enums
 │   └── resources/
 │       ├── application.properties
 │       └── db/migration/  V1, V2 y V3 (Flyway)
 └── test/java/edu/unimag/pulsepass/persistence/
-    └── ...                Pruebas de integración con Testcontainers
+    ├── controller/        Pruebas de contrato HTTP (@WebMvcTest + MockMvc)
+    ├── service/           Unit tests de servicios (Mockito)
+    └── ...                Pruebas de integración de persistencia (Testcontainers)
+```
+
+Cada capa solo conoce a la que tiene debajo:
+
+```
+HTTP Request -> Controller -> Service -> Repository -> PostgreSQL
+                    |             |
+              valida la forma   aplica las reglas
+              del request       de negocio
 ```
 
 Configuración relevante (`application.properties`):
@@ -124,7 +164,7 @@ Todos se guardan **por nombre** con `@Enumerated(EnumType.STRING)` (nunca por or
 - **`LAZY` en todas las relaciones `@ManyToOne`**, para no cargar datos que no se necesitan.
 - **Precios con `BigDecimal` / `NUMERIC(12,2)`**, nunca `float` ni `double`.
 - **Sin Lombok `@Data`** en las entidades: getters y setters escritos a mano.
-- **`SOLD_OUT` no se calcula**: es un estado que se asigna manualmente, como indica el MVP.
+- **`SOLD_OUT` no lo calcula la base de datos**: en la fase de persistencia era un estado asignado manualmente; desde la capa de servicios lo asigna `TicketService` cuando la compra llena la capacidad del venue.
 
 ## Migraciones (Flyway)
 
@@ -160,13 +200,228 @@ Se usan **Query Methods** para filtros simples y navegación de relaciones, y **
 
 **Tickets pagados por evento (FR-TKT-007):** el PRD permite Query Method o JPQL. Se eligió Query Method porque es un filtro de dos condiciones sobre una relación y Spring Data lo resuelve por el nombre; además el método recibe el estado como parámetro, así que sirve para cualquier `TicketStatus`, no solo `PAID`.
 
+La capa de servicios agregó después algunos Query Methods de apoyo para sus reglas: `existsByEventCode`, `existsByUsername`, `existsByEmailIgnoreCase`, `findByUsername`, `findByTicketCode`, `findByStageNameIgnoreCase`, `findByActiveTrueOrderByNameAsc` (venues), `findByActiveTrueOrderByStageNameAsc` (artistas) y `findByUserEmailIgnoreCaseOrderByPurchaseDateDesc`.
+
+## Capa de servicios
+
+Cada servicio tiene una interfaz (`XService`) y una implementación (`XServiceImpl`) con `@Service`, dependencias `final` e inyección por constructor. Los servicios reciben y devuelven **DTOs** (`record`), nunca entidades JPA; la conversión la hacen los mappers de MapStruct (por ejemplo, `venue.code` -> `venueCode` y `ticket.user.email` -> `userEmail`).
+
+| Servicio | Métodos |
+|---|---|
+| `VenueService` | `findByCode`, `findActiveVenues` |
+| `ArtistService` | `findById`, `findByStageName`, `findActiveArtists` |
+| `EventService` | `create`, `findByCode`, `findPublishedEvents`, `publish`, `addArtist`, `findByArtist` |
+| `UserService` | `register`, `findByEmail`, `findByUsername` |
+| `TicketService` | `purchase`, `findByCode`, `findByUserEmail`, `findPaidTicketsByEvent`, `cancel`, `markAsUsed` |
+
+Las escrituras usan `@Transactional` y las lecturas `@Transactional(readOnly = true)`.
+
+### Excepciones
+
+| Excepción | Cuándo se lanza |
+|---|---|
+| `ResourceNotFoundException` | El recurso pedido no existe |
+| `DuplicateResourceException` | Conflicto de unicidad (código de evento, username o email repetido) |
+| `BusinessRuleException` | El recurso existe, pero la operación no es válida en su estado actual |
+
+### Reglas de negocio principales
+
+**Eventos**
+
+- Al crear: `eventCode` único, venue existente y activo, fecha futura y `minimumAge >= 0`. Todo evento nuevo inicia en `DRAFT`; el request no controla el estado.
+- Solo se publica un evento en `DRAFT`, con fecha futura y venue activo.
+- No se asocia dos veces el mismo artista, ni se agregan artistas a eventos `CANCELLED` o `FINISHED`.
+
+**Usuarios**
+
+- `username` y `email` únicos (el email sin distinguir mayúsculas) y `birthDate` no futura.
+- `User` y `UserProfile` se crean en la misma transacción.
+
+**Tickets**
+
+- La compra exige usuario existente y activo, evento `PUBLISHED` con fecha futura, edad mínima cumplida (calculada a la fecha del evento) y cupo disponible según la capacidad del venue.
+- El ticket se crea en `PAID`, y si con esa compra se llena el venue, el evento pasa a `SOLD_OUT`. Todo ocurre en una sola transacción.
+- Solo un ticket `PAID` puede cancelarse o marcarse como usado, y no se cancela después de la fecha del evento.
+- El precio lo calcula `TicketPriceCalculator` con `BigDecimal` sobre una base de 100.00: `GENERAL` 100.00, `STUDENT` 70.00, `VIP` 200.00 y `BACKSTAGE` 400.00.
+
+## API REST
+
+La capa de controladores expone por HTTP los 20 métodos públicos de los servicios. Los controllers son delgados: reciben la petición, delegan en el servicio y devuelven un `ResponseEntity` con un DTO. No acceden a repositories, no contienen reglas de negocio y no tienen bloques `try/catch`.
+
+La API no está versionada ni tiene autenticación: todos los endpoints son públicos en este MVP.
+
+### Endpoints
+
+**Venues** (`VenueController`)
+
+| Método | Endpoint | Servicio | Éxito |
+|---|---|---|---|
+| GET | `/api/venues/{code}` | `findByCode` | 200 |
+| GET | `/api/venues/active` | `findActiveVenues` | 200 |
+
+**Eventos** (`EventController`)
+
+| Método | Endpoint | Servicio | Éxito |
+|---|---|---|---|
+| POST | `/api/events` | `create` | 201 |
+| GET | `/api/events/{eventCode}` | `findByCode` | 200 |
+| GET | `/api/events/published` | `findPublishedEvents` | 200 |
+| PATCH | `/api/events/{eventCode}/publish` | `publish` | 200 |
+| POST | `/api/events/{eventCode}/artists/{artistId}` | `addArtist` | 200 |
+| GET | `/api/events/by-artist?stageName=...` | `findByArtist` | 200 |
+
+**Artistas** (`ArtistController`)
+
+| Método | Endpoint | Servicio | Éxito |
+|---|---|---|---|
+| GET | `/api/artists/{id}` | `findById` | 200 |
+| GET | `/api/artists/by-stage-name?stageName=...` | `findByStageName` | 200 |
+| GET | `/api/artists/active` | `findActiveArtists` | 200 |
+
+**Usuarios** (`UserController`)
+
+| Método | Endpoint | Servicio | Éxito |
+|---|---|---|---|
+| POST | `/api/users` | `register` | 201 |
+| GET | `/api/users/by-email?email=...` | `findByEmail` | 200 |
+| GET | `/api/users/by-username?username=...` | `findByUsername` | 200 |
+
+**Tickets** (`TicketController`)
+
+| Método | Endpoint | Servicio | Éxito |
+|---|---|---|---|
+| POST | `/api/tickets` | `purchase` | 201 |
+| GET | `/api/tickets/{ticketCode}` | `findByCode` | 200 |
+| GET | `/api/tickets/by-user?email=...` | `findByUserEmail` | 200 |
+| GET | `/api/events/{eventCode}/tickets/paid` | `findPaidTicketsByEvent` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/cancel` | `cancel` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/use` | `markAsUsed` | 200 |
+
+### Ejemplo: crear un evento
+
+```http
+POST /api/events
+Content-Type: application/json
+
+{
+  "eventCode": "CMF-2026",
+  "name": "Caribbean Music Fest 2026",
+  "description": "Festival de musica",
+  "category": "MUSIC",
+  "eventDate": "2026-12-15T20:00:00",
+  "minimumAge": 18,
+  "venueCode": "VEN-SMR-01"
+}
+```
+
+Respuesta `201 Created`:
+
+```json
+{
+  "id": 1,
+  "eventCode": "CMF-2026",
+  "name": "Caribbean Music Fest 2026",
+  "description": "Festival de musica",
+  "category": "MUSIC",
+  "status": "DRAFT",
+  "eventDate": "2026-12-15T20:00:00",
+  "minimumAge": 18,
+  "venueCode": "VEN-SMR-01",
+  "venueName": "Marina Convention Center",
+  "artists": []
+}
+```
+
+Las asociaciones se expresan con identificadores de negocio (`venueCode`, `userEmail`, `eventCode`), nunca enviando objetos JPA anidados.
+
+### Validación de entrada
+
+Los tres request DTOs llevan anotaciones de Bean Validation, que se activan con `@Valid @RequestBody` en el controller. Si el request no las cumple, la API responde `400` **antes** de invocar el servicio.
+
+| DTO | Campo | Validación |
+|---|---|---|
+| `CreateEventRequest` | `eventCode`, `name`, `venueCode` | `@NotBlank` |
+| | `description` | `@Size(max = 1000)` |
+| | `category`, `eventDate` | `@NotNull` |
+| | `minimumAge` | `@NotNull`, `@Min(0)` |
+| `RegisterUserRequest` | `username`, `firstName`, `lastName` | `@NotBlank` |
+| | `email` | `@NotBlank`, `@Email` |
+| | `birthDate` | `@NotNull` |
+| `PurchaseTicketRequest` | `userEmail` | `@NotBlank`, `@Email` |
+| | `eventCode` | `@NotBlank` |
+| | `type` | `@NotNull` |
+
+El límite entre capas es este:
+
+| Valida el Controller (estructura) | Valida el Service (negocio) |
+|---|---|
+| Campo obligatorio, formato de email, longitud, valor mínimo, JSON mal formado | Usuario activo, evento existente y publicado, edad mínima, capacidad, transiciones de estado, duplicados |
+
+### Manejo de errores
+
+`GlobalExceptionHandler` (`@RestControllerAdvice`) centraliza la traducción de excepciones a HTTP. Todos los errores usan el mismo contrato, `ErrorResponse`:
+
+```json
+{
+  "timestamp": "2026-10-10T20:00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Event not found: CMF-2026",
+  "details": {}
+}
+```
+
+En los errores de validación, `details` trae un mensaje por cada campo inválido:
+
+```json
+{
+  "timestamp": "2026-10-10T20:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation Failed",
+  "details": {
+    "eventCode": "Event code is required",
+    "venueCode": "Venue code is required"
+  }
+}
+```
+
+| Excepción o condición | Código | Significado |
+|---|---|---|
+| `MethodArgumentNotValidException` | 400 | El request no cumple Bean Validation |
+| `HttpMessageNotReadableException` | 400 | JSON mal formado o valor de enum inexistente |
+| `ResourceNotFoundException` | 404 | El recurso no existe |
+| `DuplicateResourceException` | 409 | Conflicto de unicidad |
+| `BusinessRuleException` | 409 | Regla de negocio incumplida |
+| Cualquier otra excepción | 500 | Error inesperado, con mensaje genérico y sin stack trace |
+
+### Decisiones de diseño de la API
+
+- **`POST` de creación devuelve `201`** (evento, usuario, ticket); las consultas y los `PATCH` devuelven `200`.
+- **`POST /api/events/{eventCode}/artists/{artistId}` devuelve `200` y no `201`**, porque responde con el evento actualizado y no con un recurso nuevo.
+- **`PATCH` para las transiciones de estado** (`publish`, `cancel`, `use`): modifican una parte de un recurso existente y no llevan cuerpo; la acción va en la ruta.
+- **`@PathVariable` para identificar un recurso** (`/api/venues/{code}`) y **`@RequestParam` para búsquedas** (`?stageName=...`, `?email=...`), cuyos valores pueden llevar espacios o símbolos.
+- **`GET /api/events/{eventCode}/tickets/paid` vive en `TicketController`**, aunque la ruta empiece por `/events`, porque delega en `TicketService`. Por eso ese controller usa `@RequestMapping("/api")` y cada método declara su ruta completa.
+- **Los listados usan `EventSummaryResponse`**, una versión corta del evento sin descripción ni artistas.
+- **El error 500 no expone `ex.getMessage()`**, para no filtrar detalles internos al cliente.
+
 ## Pruebas
 
-Las pruebas de integración levantan un **PostgreSQL real con Testcontainers** (no se usa H2), dejan que Flyway construya el esquema y luego ejecutan los repositories. Cada prueba usa `@Transactional`, así que los datos se revierten y no se contaminan entre sí. Hay 38 pruebas en total.
+El proyecto tiene **117 pruebas** repartidas en tres niveles, uno por capa:
+
+| Capa | Tipo de prueba | Herramientas | ¿Necesita Docker? | Pruebas |
+|---|---|---|---|---|
+| Persistencia | Integración | `@SpringBootTest` + Testcontainers (PostgreSQL real) | Sí | 38 |
+| Servicios | Unitarias | JUnit 5 + Mockito + AssertJ, repositories simulados | No | 47 |
+| Controladores | Contrato HTTP | `@WebMvcTest` + MockMvc, servicios simulados con `@MockitoBean` | No | 32 |
+
+En cada nivel se simula la capa inmediatamente inferior, de modo que una falla señala con claridad en qué capa está el problema.
 
 ### Cómo ejecutarlas
 
-**Requisitos:** JDK 21 y **Docker corriendo** (Docker Desktop abierto en Windows). No hace falta instalar PostgreSQL: Testcontainers descarga y arranca `postgres:17-alpine` por su cuenta. La primera ejecución tarda más porque descarga las dependencias y la imagen.
+**Requisitos:** JDK 21 y, para la suite completa, **Docker corriendo** (Docker Desktop abierto en Windows). No hace falta instalar PostgreSQL: Testcontainers descarga y arranca `postgres:17-alpine` por su cuenta. La primera ejecución tarda más porque descarga las dependencias y la imagen.
+
+Suite completa:
 
 ```bash
 # Linux / macOS
@@ -176,21 +431,70 @@ Las pruebas de integración levantan un **PostgreSQL real con Testcontainers** (
 .\mvnw.cmd clean test
 ```
 
-El resultado esperado es `BUILD SUCCESS`. Para ejecutar una sola clase de prueba:
+El resultado esperado es `BUILD SUCCESS`.
+
+Solo las pruebas que **no necesitan Docker** (servicios y controladores):
 
 ```bash
-./mvnw test -Dtest=FlywayMigrationTest
+./mvnw test -Dtest="*ControllerTest,*ServiceImplTest,TicketPriceCalculatorTest"
 ```
 
-Para comprobar solo que el código compila (por ejemplo, en un equipo sin Docker):
+Solo los controladores, o una sola clase:
+
+```bash
+./mvnw test -Dtest="*ControllerTest"
+./mvnw test -Dtest=EventControllerTest
+```
+
+Para comprobar únicamente que el código compila:
 
 ```bash
 ./mvnw test-compile
 ```
 
-`TestPersistenceApplication` permite además arrancar la aplicación desde el IDE con un PostgreSQL temporal.
+### Probar la API manualmente
 
-### Clases de prueba
+`TestPersistenceApplication` arranca la aplicación con un PostgreSQL temporal de Testcontainers (requiere Docker). Se puede ejecutar desde el IDE o con:
+
+```bash
+./mvnw spring-boot:test-run
+```
+
+La API queda disponible en `http://localhost:8080`. La base arranca solo con los cinco artistas de la migración V2, así que `GET /api/artists/active` responde de inmediato. Como el MVP no incluye un endpoint para crear venues, para probar la creación de eventos hay que insertar antes un venue directamente en la base.
+
+### Pruebas de controladores
+
+Cada controller tiene su clase de prueba. En todas se valida el status HTTP, el `Content-Type` y los campos relevantes del JSON con `jsonPath`, y se verifica la interacción con el servicio mediante `verify(...)`.
+
+| Clase | Pruebas | Qué cubre |
+|---|---|---|
+| `VenueControllerTest` | 3 | Venue existente (200), inexistente (404) y venues activos (200) |
+| `EventControllerTest` | 9 | Crear (201), request inválido (400), consultar (200 y 404), publicados (200), publicar (200 y 409), asociar artista (200) y buscar por artista (200) |
+| `ArtistControllerTest` | 4 | Por ID (200 y 404), por `stageName` (200) y activos (200) |
+| `UserControllerTest` | 5 | Registrar (201), email inválido (400), username duplicado (409), por email (200) y por username (200) |
+| `TicketControllerTest` | 11 | Comprar (201, 400, 404 y 409), consultar (200), por usuario (200), `PAID` por evento (200), cancelar (200 y 409) y usar (200 y 409) |
+
+Dos casos resumen la frontera entre capas:
+
+- **Request inválido (400):** se usa `verify(service, never())`, que demuestra que el request nunca llegó al servicio.
+- **Regla de negocio incumplida (409) o recurso inexistente (404):** el servicio sí es invocado y es él quien lanza la excepción; el `GlobalExceptionHandler` la convierte en respuesta.
+
+### Pruebas de servicios
+
+| Clase | Pruebas | Qué cubre |
+|---|---|---|
+| `VenueServiceImplTest` | 3 | Consulta por código, venue inexistente y venues activos |
+| `ArtistServiceImplTest` | 4 | Consulta por ID, artista inexistente (por ID y por `stageName`) y activos |
+| `EventServiceImplTest` | 17 | Reglas de creación, publicación y asociación de artistas, y consultas |
+| `UserServiceImplTest` | 6 | Registro con perfil, duplicados de username y email, fecha de nacimiento y consultas |
+| `TicketServiceImplTest` | 12 | Compra (usuario, evento, edad, capacidad, `SOLD_OUT`), cancelación y uso |
+| `TicketPriceCalculatorTest` | 5 | Precio por tipo de ticket |
+
+En los caminos inválidos se usa `verify(..., never())` para comprobar que no se guarda nada.
+
+### Pruebas de persistencia
+
+Levantan un **PostgreSQL real con Testcontainers** (no se usa H2), dejan que Flyway construya el esquema y luego ejecutan los repositories. Cada prueba usa `@Transactional`, así que los datos se revierten y no se contaminan entre sí.
 
 | Clase | Qué cubre |
 |---|---|
@@ -208,6 +512,8 @@ Para comprobar solo que el código compila (por ejemplo, en un equipo sin Docker
 
 ### Trazabilidad
 
+**Persistencia**
+
 | Criterio del PRD | Dónde se verifica |
 |---|---|
 | QT-001 Flyway desde base vacía | `FlywayMigrationTest` |
@@ -221,35 +527,36 @@ Para comprobar solo que el código compila (por ejemplo, en un equipo sin Docker
 | QT-009 UNIQUE con `saveAndFlush` | Pruebas `rejectsDuplicate...` de cada repository |
 | QT-010 `mvn clean test` en verde | `./mvnw clean test` |
 
-## Preguntas para el equipo (sección 23 del PRD)
+**Controladores**
 
-**1. ¿Por qué Ticket debe ser una entidad en lugar de un `@ManyToMany` entre User y Event?**
-Porque la relación tiene datos propios: `ticketCode`, `type`, `price`, `status` y `purchaseDate`. Un `@ManyToMany` solo genera una tabla de unión con dos FK y no puede guardar esos atributos. Además, un usuario puede tener varios tickets para el mismo evento (por ejemplo, un VIP y uno GENERAL), algo que una tabla de unión con PK compuesta no permitiría, y como entidad el ticket puede tener su propio identificador de negocio único y consultarse por estado.
-
-**2. ¿Qué reglas pertenecen a PostgreSQL y cuáles deberían quedar para una futura capa Service?**
-En PostgreSQL van las reglas que deben cumplirse siempre, sin importar quién escriba los datos: unicidad de los identificadores de negocio, claves foráneas, `NOT NULL`, rangos (`capacity > 0`, `price >= 0`), catálogos de enums, la PK compuesta de `event_artists` y el 1:1 de `user_profiles`. En una capa Service irían las reglas de negocio que dependen de varios datos o del flujo: las transiciones de estado válidas (RESERVED → PAID → USED, o CANCELLED), el cálculo automático de `SOLD_OUT` comparando capacidad y tickets pagados, verificar la edad mínima frente al perfil del usuario y no vender tickets de un evento cancelado.
-
-**3. ¿Qué consultas pueden expresarse claramente como Query Methods y cuáles justifican JPQL?**
-Son Query Methods los filtros simples y la navegación de relaciones: por `eventCode`, por email ignorando mayúsculas, eventos publicados ordenados por fecha, por `venue.code` y tickets por email y estado. Justifican JPQL las que necesitan JOIN sobre la relación N:M, `DISTINCT`, agregaciones o varias condiciones sobre distintas asociaciones: eventos por artista, por ciudad y artista, los recomendados, el conteo de tickets pagados y los tickets de eventos futuros. Un nombre de método para esos casos sería ilegible.
-
-**4. ¿Qué consecuencias tendría modificar V1 después de haberla aplicado en un ambiente compartido?**
-Flyway guarda el checksum de cada migración en `flyway_schema_history`. Si se edita V1 después de aplicada, la validación falla en cada ambiente donde ya corrió (`Migration checksum mismatch`) y la aplicación no arranca. Además, los ambientes quedarían con esquemas distintos: los nuevos con la versión editada y los antiguos con la original. La forma correcta es dejar V1 intacta y agregar una migración nueva (`V4__...`). En las pruebas con Testcontainers este problema no se nota, porque la base se crea desde cero en cada ejecución.
-
-**5. ¿Qué diferencias podría ocultar una prueba con H2 frente a PostgreSQL?**
-H2 tiene otro dialecto y otro comportamiento: puede aceptar SQL, tipos o funciones que PostgreSQL rechaza (y al revés), tratar de forma distinta los `CHECK`, las columnas de identidad, el manejo de mayúsculas en identificadores, la precisión de `NUMERIC` y las comparaciones con `LIKE`. Las migraciones escritas para PostgreSQL podrían incluso no ejecutarse en H2. Una prueba en verde con H2 no garantiza que el esquema y las consultas funcionen en el motor real, por eso se usa PostgreSQL con Testcontainers.
-
-**6. ¿Cómo evolucionaría el modelo para soportar inventario de tickets y evitar sobreventa?**
-Se añadiría una tabla de inventario por evento y tipo de ticket (por ejemplo, `ticket_inventory` con `event_id`, `type`, `total_quantity` y `sold_quantity`), con un `CHECK` que impida que lo vendido supere el total. La venta se haría en una transacción de la capa Service que reserve el cupo con un `UPDATE ... WHERE available > 0` atómico, o con bloqueo optimista (`@Version`) o pesimista (`SELECT ... FOR UPDATE`) para evitar condiciones de carrera entre compradores simultáneos. También convendría que las reservas (`RESERVED`) expiren si no se pagan, y calcular `SOLD_OUT` a partir del inventario.
+| Criterio del PRD | Dónde se verifica |
+|---|---|
+| QT-CTRL-001 Cada controller tiene su clase de pruebas | Las cinco clases `*ControllerTest` |
+| QT-CTRL-002 Los servicios son mocks | `@MockitoBean` en cada clase |
+| QT-CTRL-003 a 005 Status, `Content-Type` y campos JSON | `status()`, `content().contentType(...)` y `jsonPath(...)` en todas las pruebas |
+| QT-CTRL-006 Interacción con el servicio | `verify(service)...` en todas las pruebas |
+| QT-CTRL-007 Request inválido no invoca el servicio | `verify(service, never())` en las pruebas de 400 de Event, User y Ticket |
+| QT-CTRL-008 Respuestas 404 | Venue, Event, Artist y Ticket |
+| QT-CTRL-009 Respuestas 409 | Event (publicar), User (duplicado) y Ticket (compra, cancelar, usar) |
+| QT-CTRL-010 Bean Validation con 400 | Event, User y Ticket |
+| QT-CTRL-011 `ErrorResponse` | Pruebas de 400, 404 y 409 |
+| QT-CTRL-012 `mvn clean test` en verde | `./mvnw clean test` |
 
 ## Flujo de trabajo del equipo
 
-El trabajo se dividió por bloques, cada uno en su propia rama y con Pull Request revisado por la otra persona antes de integrarse a `main`:
+En cada fase se subió primero a `main` una base común pequeña (dependencias, excepciones, contratos compartidos) y después el trabajo se dividió por bloques, cada uno en su propia rama y con Pull Request revisado por la otra persona antes de integrarse.
 
-| Rama | Contenido |
-|---|---|
-| `main` (inicial) | Esqueleto, migraciones V1–V3, `Venue` y `Event` |
-| `feature/artist` | `Artist`, relación N:M con `Event` y consultas JPQL de búsqueda |
-| `feature/user-profile` | `User`, `UserProfile` y su relación 1:1 |
-| `feature/ticket` | `Ticket`, sus enums, `TicketRepository` y consultas |
+| Fase | Rama | Contenido |
+|---|---|---|
+| Persistencia | `main` (inicial) | Esqueleto, migraciones V1–V3, `Venue` y `Event` |
+| | `feature/artist` | `Artist`, relación N:M con `Event` y consultas JPQL de búsqueda |
+| | `feature/user-profile` | `User`, `UserProfile` y su relación 1:1 |
+| | `feature/ticket` | `Ticket`, sus enums, `TicketRepository` y consultas |
+| Servicios | `main` (base) | MapStruct en el `pom.xml`, las tres excepciones y métodos de repository adicionales |
+| | `feature/event-user-services` | Servicios, DTOs, mappers y tests de `Event`, `Artist`, `Venue` y `User` |
+| | `feature/ticket-service` | `TicketService`, `TicketPriceCalculator` y sus tests |
+| Controladores | `main` (base) | Dependencias web y de validación, `ErrorResponse`, `GlobalExceptionHandler` y validaciones en los request DTOs |
+| | `feature/event-venue-artist-controllers` | `EventController`, `VenueController`, `ArtistController` y sus tests |
+| | `feature/ticket-user-controllers` | `TicketController`, `UserController` y sus tests |
 
-Los mensajes de commit y las pruebas hacen referencia a los identificadores de requisito del PRD (por ejemplo, `FR-TKT-003`) cuando corresponde.
+Como cada bloque crea sus propios archivos, las ramas se integran sin conflictos. Los mensajes de commit y las pruebas hacen referencia a los identificadores del PRD (por ejemplo, `FR-TKT-003` o `TEST-CTRL-EVT-001`) cuando corresponde.

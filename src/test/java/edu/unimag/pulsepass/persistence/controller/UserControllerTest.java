@@ -51,7 +51,8 @@ class UserControllerTest {
                     "lastName": "Lopez",
                     "phone": "3001234567",
                     "city": "Santa Marta",
-                    "birthDate": "2000-05-10"
+                    "birthDate": "2000-05-10", 
+                    "password": "LaMejorContraseñaQuePodrasVerEnTuVidaCrack123"
                 }
                 """.formatted(email);
     }

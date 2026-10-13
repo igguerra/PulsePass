@@ -16,11 +16,11 @@ class FlywayMigrationTest {
     JdbcTemplate jdbcTemplate;
 
     @Test
-    void appliesV1V2V3FromEmptyDatabase() {
+    void appliesV1ToV4FromEmptyDatabase() {
         Integer applied = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = TRUE",
                 Integer.class);
-        assertThat(applied).isEqualTo(3);
+        assertThat(applied).isEqualTo(4);
     }
 
     @Test

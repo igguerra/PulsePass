@@ -52,7 +52,7 @@ class UserServiceImplTest {
 
     private RegisterUserRequest request(LocalDate birthDate) {
         return new RegisterUserRequest(USERNAME, EMAIL, "Andrea", "Gómez",
-                "3001234567", "Santa Marta", birthDate);
+                "3001234567", "Santa Marta", birthDate, "UnaFraseSeguraLarga2026!");
     }
 
     private UserResponse response() {

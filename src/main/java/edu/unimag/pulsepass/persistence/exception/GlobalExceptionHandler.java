@@ -7,6 +7,8 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -67,6 +69,20 @@ public class GlobalExceptionHandler {
 
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected internal error", Map.of()); 
 
+    }
+
+    // 401: falta identidad válida (credenciales incorrectas, token ausente, inválido o vencido).
+    @ExceptionHandler (AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
+
+        return build(HttpStatus.UNAUTHORIZED, "Authentication is required or credentials are invalid", Map.of());
+    }
+
+    // 403: identidad válida, pero sin permiso para la operación.
+    @ExceptionHandler (AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+
+        return build(HttpStatus.FORBIDDEN, "You do not have permission to perform this operation", Map.of());
     }
 
 }

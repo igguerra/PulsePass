@@ -24,10 +24,12 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             RestAuthenticationEntryPoint authEntryPoint,
-            RestAccessDeniedHandler deniedHandler) throws Exception {
+            RestAccessDeniedHandler deniedHandler, 
+            JwtService jwtService, 
+            CustomUserDetailsService userDetailsService) throws Exception {
 
         // Bloque de autenticación: aquí se le pasarán JwtService y el UserDetailsService.
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService, authEntryPoint); 
 
         http
             // API stateless con Bearer: no hay cookies de sesión que proteger con CSRF.

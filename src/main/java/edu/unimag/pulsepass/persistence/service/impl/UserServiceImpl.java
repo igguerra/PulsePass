@@ -2,10 +2,13 @@ package edu.unimag.pulsepass.persistence.service.impl;
 
 import java.time.LocalDate;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import edu.unimag.pulsepass.persistence.domain.Role;
 import edu.unimag.pulsepass.persistence.domain.User;
+import edu.unimag.pulsepass.persistence.domain.UserCredential;
 import edu.unimag.pulsepass.persistence.domain.UserProfile;
 import edu.unimag.pulsepass.persistence.dto.request.RegisterUserRequest;
 import edu.unimag.pulsepass.persistence.dto.response.UserResponse;
@@ -13,8 +16,10 @@ import edu.unimag.pulsepass.persistence.exception.BusinessRuleException;
 import edu.unimag.pulsepass.persistence.exception.DuplicateResourceException;
 import edu.unimag.pulsepass.persistence.exception.ResourceNotFoundException;
 import edu.unimag.pulsepass.persistence.mapper.UserMapper;
+import edu.unimag.pulsepass.persistence.repository.UserCredentialRepository;
 import edu.unimag.pulsepass.persistence.repository.UserProfileRepository;
 import edu.unimag.pulsepass.persistence.repository.UserRepository;
+import edu.unimag.pulsepass.persistence.security.AuthorizationService;
 import edu.unimag.pulsepass.persistence.service.UserService;
 
 @Service
@@ -22,15 +27,24 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final UserCredentialRepository userCredentialRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthorizationService authorizationService;
 
     public UserServiceImpl(
             UserRepository userRepository,
             UserProfileRepository userProfileRepository,
-            UserMapper userMapper) {
+            UserCredentialRepository userCredentialRepository,
+            UserMapper userMapper,
+            PasswordEncoder passwordEncoder,
+            AuthorizationService authorizationService) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
+        this.userCredentialRepository = userCredentialRepository;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.authorizationService = authorizationService;
     }
 
     // BR-USER-004: User y UserProfile se crean en la misma transacción
@@ -61,6 +75,12 @@ public class UserServiceImpl implements UserService {
         profile.setBirthDate(request.birthDate());
         UserProfile savedProfile = userProfileRepository.save(profile);
 
+        // FR-SEC-AUTH-001: the password is stored only as a BCrypt hash, and the
+        // initial role is always USER (never read from the request).
+        UserCredential credential = new UserCredential(user, passwordEncoder.encode(request.password()));
+        credential.addRole(Role.USER);
+        userCredentialRepository.save(credential);
+
         return userMapper.toResponse(user, savedProfile);
     }
 
@@ -69,6 +89,10 @@ public class UserServiceImpl implements UserService {
     public UserResponse findByEmail(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        // FR-SEC-USR-02: only the user themselves or an ADMIN
+        authorizationService.requireSelfOrAdmin(user.getId());
+
         return toResponse(user);
     }
 
@@ -77,6 +101,10 @@ public class UserServiceImpl implements UserService {
     public UserResponse findByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        // FR-SEC-USR-03: only the user themselves or an ADMIN
+        authorizationService.requireSelfOrAdmin(user.getId());
+
         return toResponse(user);
     }
 

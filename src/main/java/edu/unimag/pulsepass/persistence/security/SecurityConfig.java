@@ -4,6 +4,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -24,10 +27,12 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             RestAuthenticationEntryPoint authEntryPoint,
-            RestAccessDeniedHandler deniedHandler) throws Exception {
+            RestAccessDeniedHandler deniedHandler, 
+            JwtService jwtService, 
+            CustomUserDetailsService userDetailsService) throws Exception {
 
         // Bloque de autenticación: aquí se le pasarán JwtService y el UserDetailsService.
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter();
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService, authEntryPoint); 
 
         http
             // API stateless con Bearer: no hay cookies de sesión que proteger con CSRF.
@@ -50,7 +55,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,
                         "/api/venues/**",
                         "/api/artists/**",
-                        "/api/events/published").permitAll()
+                        "/api/events/published", 
+                        "/api/events/by-artist", 
+                        "/api/events/*").permitAll()
 
                 // --- ADMIN ---
                 .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")
@@ -75,5 +82,15 @@ public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean 
+    AuthenticationManager authenticationManager(CustomUserDetailsService userDetailsService,
+                                                PasswordEncoder passwordEncoder) {
+        
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService); 
+        provider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(provider); 
+
     }
 }

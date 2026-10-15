@@ -94,7 +94,7 @@ class EventServiceImplTest {
         when(eventMapper.toResponse(event)).thenReturn(expected);
 
         // ACT
-        EventResponse result = eventService.findByCode(EVENT_CODE);
+        EventResponse result = eventService.findByCode(EVENT_CODE, false);
 
         // ASSERT
         assertThat(result).isEqualTo(expected);
@@ -107,7 +107,7 @@ class EventServiceImplTest {
         when(eventRepository.findByEventCode(EVENT_CODE)).thenReturn(Optional.empty());
 
         // ACT + ASSERT
-        assertThatThrownBy(() -> eventService.findByCode(EVENT_CODE))
+        assertThatThrownBy(() -> eventService.findByCode(EVENT_CODE, false))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining(EVENT_CODE);
         verify(eventMapper, never()).toResponse(any(Event.class));
@@ -337,6 +337,58 @@ class EventServiceImplTest {
         // ASSERT
         assertThat(result).containsExactly(summary);
         verify(eventRepository).findByStatusOrderByEventDateAsc(eq(EventStatus.PUBLISHED));
+    }
+
+        // ---------- visibilidad de eventos no publicados (T-SEC-017) ----------
+
+    @Test
+    void findByCode_draftWithoutPrivileges_isHiddenAsNotFound() {
+        Event draft = event(EventStatus.DRAFT, FUTURE);
+        when(eventRepository.findByEventCode(EVENT_CODE)).thenReturn(Optional.of(draft));
+
+        assertThatThrownBy(() -> eventService.findByCode(EVENT_CODE, false))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Event not found: " + EVENT_CODE);
+        verify(eventMapper, never()).toResponse(any(Event.class));
+    }
+
+    @Test
+    void findByCode_draftWithPrivileges_returnsDto() {
+        Event draft = event(EventStatus.DRAFT, FUTURE);
+        EventResponse expected = response(EventStatus.DRAFT);
+        when(eventRepository.findByEventCode(EVENT_CODE)).thenReturn(Optional.of(draft));
+        when(eventMapper.toResponse(draft)).thenReturn(expected);
+
+        EventResponse result = eventService.findByCode(EVENT_CODE, true);
+
+        assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    void findByArtist_withoutPrivileges_returnsOnlyPublished() {
+        Event published = event(EventStatus.PUBLISHED, FUTURE);
+        Event draft = event(EventStatus.DRAFT, FUTURE);
+        EventSummaryResponse publishedSummary = new EventSummaryResponse(1L, EVENT_CODE,
+                "Caribbean Music Fest 2026", EventCategory.MUSIC, EventStatus.PUBLISHED, FUTURE,
+                "Marina Convention Center");
+        when(eventRepository.findEventsByArtist("Solar Beat")).thenReturn(List.of(published, draft));
+        when(eventMapper.toSummary(published)).thenReturn(publishedSummary);
+
+        List<EventSummaryResponse> result = eventService.findByArtist("Solar Beat", false);
+
+        assertThat(result).containsExactly(publishedSummary);
+        verify(eventMapper, never()).toSummary(draft);
+    }
+
+    @Test
+    void findByArtist_withPrivileges_returnsAllStatuses() {
+        Event published = event(EventStatus.PUBLISHED, FUTURE);
+        Event draft = event(EventStatus.DRAFT, FUTURE);
+        when(eventRepository.findEventsByArtist("Solar Beat")).thenReturn(List.of(published, draft));
+
+        List<EventSummaryResponse> result = eventService.findByArtist("Solar Beat", true);
+
+        assertThat(result).hasSize(2);
     }
 
 }

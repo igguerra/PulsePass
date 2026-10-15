@@ -10,7 +10,7 @@ public interface EventService {
 
     EventResponse create(CreateEventRequest request);
 
-    EventResponse findByCode(String eventCode);
+    EventResponse findByCode(String eventCode, boolean includeUnpublished);
 
     List<EventSummaryResponse> findPublishedEvents();
 
@@ -18,6 +18,6 @@ public interface EventService {
 
     EventResponse addArtist(String eventCode, Long artistId);
 
-    List<EventSummaryResponse> findByArtist(String stageName);
+    List<EventSummaryResponse> findByArtist(String stageName, boolean includeUnpublished);
 
 }

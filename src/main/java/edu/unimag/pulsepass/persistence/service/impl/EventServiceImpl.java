@@ -86,8 +86,14 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventResponse findByCode(String eventCode) {
-        return eventMapper.toResponse(findEventOrThrow(eventCode));
+    public EventResponse findByCode(String eventCode, boolean includeUnpublished) {
+        Event event = findEventOrThrow(eventCode); 
+
+        if (!includeUnpublished && event.getStatus() != EventStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Event not found: " + eventCode); 
+        }
+
+        return eventMapper.toResponse(event);
     }
 
     @Override
@@ -152,9 +158,11 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventSummaryResponse> findByArtist(String stageName) {
+    public List<EventSummaryResponse> findByArtist(String stageName, boolean includeUnpublished) {
         return eventRepository.findEventsByArtist(stageName)
                 .stream()
+                // FR-SEC-EVT-06: sin privilegios, solo eventos publicados.
+                .filter(event-> includeUnpublished || event.getStatus() == EventStatus.PUBLISHED)
                 .map(eventMapper::toSummary)
                 .toList();
     }

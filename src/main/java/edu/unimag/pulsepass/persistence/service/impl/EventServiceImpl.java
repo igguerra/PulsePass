@@ -93,7 +93,7 @@ public class EventServiceImpl implements EventService {
             throw new ResourceNotFoundException("Event not found: " + eventCode); 
         }
 
-        return eventMapper.toResponse(findEventOrThrow(eventCode));
+        return eventMapper.toResponse(event);
     }
 
     @Override

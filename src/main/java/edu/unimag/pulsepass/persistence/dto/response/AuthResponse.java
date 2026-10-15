@@ -2,8 +2,8 @@ package edu.unimag.pulsepass.persistence.dto.response;
 
 public record AuthResponse(
 
-            String accesToken, 
+            String accessToken, 
             String tokenType, 
-            Long expiresIn
+            long expiresIn
 
 ) {}

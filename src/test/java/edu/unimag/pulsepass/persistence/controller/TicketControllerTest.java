@@ -41,11 +41,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import edu.unimag.pulsepass.persistence.security.WebMvcSecurityTest;
 
 @WebMvcTest(TicketController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class,
-        RestAccessDeniedHandler.class, GlobalExceptionHandler.class})
-@TestPropertySource(properties = "pulsepass.security.jwt.access-token-ttl=PT15M")
+@WebMvcSecurityTest
 class TicketControllerTest {
 
     private static final Long ANDREA_ID = 1L;

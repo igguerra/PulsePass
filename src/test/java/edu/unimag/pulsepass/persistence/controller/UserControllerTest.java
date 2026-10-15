@@ -35,12 +35,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import edu.unimag.pulsepass.persistence.security.WebMvcSecurityTest;
 
 @WebMvcTest(UserController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class,
-        RestAccessDeniedHandler.class, GlobalExceptionHandler.class})
-// The test properties file defines the JWT key and issuer; this makes the TTL explicit for these tests.
-@TestPropertySource(properties = "pulsepass.security.jwt.access-token-ttl=PT15M")
+@WebMvcSecurityTest
 class UserControllerTest {
 
     @Autowired

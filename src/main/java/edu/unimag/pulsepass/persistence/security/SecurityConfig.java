@@ -57,7 +57,7 @@ public class SecurityConfig {
                         "/api/artists/**",
                         "/api/events/published", 
                         "/api/events/by-artist", 
-                        "api/events/*").permitAll()
+                        "/api/events/*").permitAll()
 
                 // --- ADMIN ---
                 .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")

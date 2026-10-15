@@ -94,7 +94,7 @@ class EventServiceImplTest {
         when(eventMapper.toResponse(event)).thenReturn(expected);
 
         // ACT
-        EventResponse result = eventService.findByCode(EVENT_CODE);
+        EventResponse result = eventService.findByCode(EVENT_CODE, false);
 
         // ASSERT
         assertThat(result).isEqualTo(expected);
@@ -107,7 +107,7 @@ class EventServiceImplTest {
         when(eventRepository.findByEventCode(EVENT_CODE)).thenReturn(Optional.empty());
 
         // ACT + ASSERT
-        assertThatThrownBy(() -> eventService.findByCode(EVENT_CODE))
+        assertThatThrownBy(() -> eventService.findByCode(EVENT_CODE, false))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining(EVENT_CODE);
         verify(eventMapper, never()).toResponse(any(Event.class));

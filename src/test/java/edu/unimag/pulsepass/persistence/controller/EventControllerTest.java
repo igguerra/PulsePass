@@ -1,6 +1,8 @@
 package edu.unimag.pulsepass.persistence.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -106,7 +108,7 @@ class EventControllerTest {
     // TEST-CTRL-EVT-003: find existing -> 200
     @Test 
     void shouldFindEventByCode() throws Exception {
-        when(service.findByCode("CMF-2026")).thenReturn(buildEventResponse(EventStatus.DRAFT, List.of())); 
+        when(service.findByCode(eq("CMF-2026"), anyBoolean())).thenReturn(buildEventResponse(EventStatus.DRAFT, List.of())); 
 
         mockMvc.perform(get("/api/events/CMF-2026"))
                 .andExpect(status().isOk())
@@ -115,13 +117,13 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.name").value("Caribbean Music Fest 2026"))
                 .andExpect(jsonPath("$.minimumAge").value(18)); 
 
-        verify(service).findByCode("CMF-2026"); 
+        verify(service).findByCode(eq("CMF-2026"), anyBoolean()); 
     }
 
     // TEST-CTRL-EVT-004: non-existing -> 404
     @Test 
     void shouldReturn404WhenEventNotFound() throws Exception {
-        when(service.findByCode("NOPE-00")).thenThrow(new ResourceNotFoundException("Event not found: NOPE-00")); 
+        when(service.findByCode(eq("NOPE-00"), anyBoolean())).thenThrow(new ResourceNotFoundException("Event not found: NOPE-00")); 
 
         mockMvc.perform(get("/api/events/NOPE-00"))
                 .andExpect(status().isNotFound())
@@ -130,7 +132,7 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Event not found: NOPE-00")); 
 
-        verify(service).findByCode("NOPE-00"); 
+        verify(service).findByCode(eq("NOPE-00"), anyBoolean()); 
     }
 
     // TEST-CTRL-EVT-005: list published -> 200
@@ -197,7 +199,7 @@ class EventControllerTest {
     // TEST-CTRL-EVT-009: find by artist -> 200
     @Test
     void shouldFindEventsByArtist() throws Exception {
-        when(service.findByArtist("Solar Beat")).thenReturn(List.of(buildEventSummary()));
+        when(service.findByArtist(eq("Solar Beat"), anyBoolean())).thenReturn(List.of(buildEventSummary()));
 
         mockMvc.perform(get("/api/events/by-artist").param("stageName", "Solar Beat"))
                 .andExpect(status().isOk())
@@ -205,7 +207,7 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].eventCode").value("CMF-2026"));
 
-        verify(service).findByArtist("Solar Beat");
+        verify(service).findByArtist(eq("Solar Beat"), anyBoolean());
     }
 
 }

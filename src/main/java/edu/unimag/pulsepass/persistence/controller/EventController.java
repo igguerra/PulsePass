@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import edu.unimag.pulsepass.persistence.domain.Role;
 import edu.unimag.pulsepass.persistence.dto.request.CreateEventRequest;
 import edu.unimag.pulsepass.persistence.dto.response.EventResponse;
 import edu.unimag.pulsepass.persistence.dto.response.EventSummaryResponse;
+import edu.unimag.pulsepass.persistence.security.SecurityPrincipal;
 import edu.unimag.pulsepass.persistence.service.EventService;
 import jakarta.validation.Valid;
 
@@ -40,8 +43,8 @@ public class EventController {
     }
 
     @GetMapping("/{eventCode}")
-    public ResponseEntity<EventResponse> findByCode(@PathVariable String eventCode) {
-        return ResponseEntity.ok(service.findByCode(eventCode)); 
+    public ResponseEntity<EventResponse> findByCode(@PathVariable String eventCode, @AuthenticationPrincipal SecurityPrincipal principal) {
+        return ResponseEntity.ok(service.findByCode(eventCode, canSeeUnpublished(principal))); 
     }
 
     @GetMapping("/published")
@@ -62,7 +65,12 @@ public class EventController {
     }
 
     @GetMapping("/by-artist")
-    public ResponseEntity<List<EventSummaryResponse>> findByArtis(@RequestParam String stageName) {
-        return ResponseEntity.ok(service.findByArtist(stageName)); 
+    public ResponseEntity<List<EventSummaryResponse>> findByArtis(@RequestParam String stageName, @AuthenticationPrincipal SecurityPrincipal principal) {
+        return ResponseEntity.ok(service.findByArtist(stageName, canSeeUnpublished(principal))); 
+    }
+
+    private boolean canSeeUnpublished(SecurityPrincipal principal) {
+        return principal != null 
+            && (principal.hasRole(Role.STAFF) || principal.hasRole(Role.ADMIN)); 
     }
 }

@@ -1,8 +1,13 @@
 package edu.unimag.pulsepass.persistence.controller;
 
+import edu.unimag.pulsepass.persistence.domain.Role;
 import edu.unimag.pulsepass.persistence.dto.response.UserResponse;
 import edu.unimag.pulsepass.persistence.exception.DuplicateResourceException;
 import edu.unimag.pulsepass.persistence.exception.GlobalExceptionHandler;
+import edu.unimag.pulsepass.persistence.security.RestAccessDeniedHandler;
+import edu.unimag.pulsepass.persistence.security.RestAuthenticationEntryPoint;
+import edu.unimag.pulsepass.persistence.security.SecurityConfig;
+import edu.unimag.pulsepass.persistence.security.SecurityPrincipal;
 import edu.unimag.pulsepass.persistence.service.UserService;
 
 import org.junit.jupiter.api.Test;
@@ -10,15 +15,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -26,7 +37,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class,
+        RestAccessDeniedHandler.class, GlobalExceptionHandler.class})
+// The test properties file defines the JWT key and issuer; this makes the TTL explicit for these tests.
+@TestPropertySource(properties = "pulsepass.security.jwt.access-token-ttl=PT15M")
 class UserControllerTest {
 
     @Autowired
@@ -34,6 +48,14 @@ class UserControllerTest {
 
     @MockitoBean
     private UserService service;
+
+    private static RequestPostProcessor asUser() {
+        SecurityPrincipal principal = new SecurityPrincipal(
+                1L, "andrea", "hash", true, Set.of(Role.USER));
+
+        return authentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+    }
 
     private UserResponse buildUserResponse() {
         return new UserResponse(
@@ -51,13 +73,13 @@ class UserControllerTest {
                     "lastName": "Lopez",
                     "phone": "3001234567",
                     "city": "Santa Marta",
-                    "birthDate": "2000-05-10", 
-                    "password": "LaMejorContraseñaQuePodrasVerEnTuVidaCrack123"
+                    "birthDate": "2000-05-10",
+                    "password": "UnaFraseSeguraLarga2026!"
                 }
                 """.formatted(email);
     }
 
-    // TEST-CTRL-USR-001: valid registration -> 201
+    // TEST-CTRL-USR-001: valid registration -> 201 (public endpoint, no identity needed)
     @Test
     void shouldRegisterUser() throws Exception {
         when(service.register(any())).thenReturn(buildUserResponse());
@@ -70,7 +92,8 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.username").value("andrea"))
                 .andExpect(jsonPath("$.email").value("andrea@email.com"))
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.password").doesNotExist());
 
         verify(service).register(any());
     }
@@ -114,7 +137,8 @@ class UserControllerTest {
         when(service.findByEmail("andrea@email.com")).thenReturn(buildUserResponse());
 
         mockMvc.perform(get("/api/users/by-email")
-                        .param("email", "andrea@email.com"))
+                        .param("email", "andrea@email.com")
+                        .with(asUser()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.email").value("andrea@email.com"))
@@ -129,12 +153,26 @@ class UserControllerTest {
         when(service.findByUsername("andrea")).thenReturn(buildUserResponse());
 
         mockMvc.perform(get("/api/users/by-username")
-                        .param("username", "andrea"))
+                        .param("username", "andrea")
+                        .with(asUser()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.username").value("andrea"))
                 .andExpect(jsonPath("$.email").value("andrea@email.com"));
 
         verify(service).findByUsername("andrea");
+    }
+
+    // T-SEC-015: a USER looks up another user's data -> 403 (the service rejects it)
+    @Test
+    void shouldReturn403WhenLookingUpAnotherUser() throws Exception {
+        when(service.findByEmail("carlos@email.com")).thenThrow(new AccessDeniedException("Access denied"));
+
+        mockMvc.perform(get("/api/users/by-email")
+                        .param("email", "carlos@email.com")
+                        .with(asUser()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"));
     }
 }

@@ -1,0 +1,6 @@
+# Exportaciones personales de Postman: pueden traer tokens o contraseñas.
+postman/local/
+*.postman_globals.json
+
+# Evidencias privadas (capturas con datos sensibles): nunca se suben.
+evidencias-privadas/

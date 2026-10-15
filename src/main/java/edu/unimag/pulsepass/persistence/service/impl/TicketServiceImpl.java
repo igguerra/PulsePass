@@ -10,6 +10,7 @@ import edu.unimag.pulsepass.persistence.repository.EventRepository;
 import edu.unimag.pulsepass.persistence.repository.TicketRepository;
 import edu.unimag.pulsepass.persistence.repository.UserProfileRepository;
 import edu.unimag.pulsepass.persistence.repository.UserRepository;
+import edu.unimag.pulsepass.persistence.security.AuthorizationService;
 import edu.unimag.pulsepass.persistence.service.TicketPriceCalculator;
 import edu.unimag.pulsepass.persistence.service.TicketService;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
     private final TicketMapper mapper;
     private final TicketPriceCalculator priceCalculator;
+    private final AuthorizationService authorizationService;
 
     public TicketServiceImpl(
             UserRepository userRepository,
@@ -38,7 +40,8 @@ public class TicketServiceImpl implements TicketService {
             UserProfileRepository userProfileRepository,
             TicketRepository ticketRepository,
             TicketMapper mapper,
-            TicketPriceCalculator priceCalculator) {
+            TicketPriceCalculator priceCalculator,
+            AuthorizationService authorizationService) {
 
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
@@ -46,6 +49,7 @@ public class TicketServiceImpl implements TicketService {
         this.ticketRepository = ticketRepository;
         this.mapper = mapper;
         this.priceCalculator = priceCalculator;
+        this.authorizationService = authorizationService;
     }
 
     @Override
@@ -56,6 +60,9 @@ public class TicketServiceImpl implements TicketService {
         User user = userRepository.findByEmailIgnoreCase(request.userEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not found: " + request.userEmail()));
+
+        // FR-SEC-TKT-01: 
+        authorizationService.requireSelf(user.getId());
 
         // BR-TICKET-002
         if (!user.isActive()) {
@@ -132,11 +139,20 @@ public class TicketServiceImpl implements TicketService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ticket not found: " + ticketCode));
 
+        // FR-SEC-TKT-02: propietario, STAFF or ADMIN
+        authorizationService.requireOwnerOrStaffOrAdmin(ticket.getUser().getId());
+
         return mapper.toResponse(ticket);
     }
 
     @Override
     public List<TicketResponse> findByUserEmail(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        // FR-SEC-TKT-03: unicamente el suser  o un ADMIN 
+        authorizationService.requireSelfOrAdmin(user.getId());
+
         return ticketRepository.findByUserEmailIgnoreCaseOrderByPurchaseDateDesc(email)
                 .stream()
                 .map(mapper::toResponse)
@@ -157,6 +173,9 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = ticketRepository.findByTicketCode(ticketCode)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ticket not found: " + ticketCode));
+
+       
+        authorizationService.requireSelfOrAdmin(ticket.getUser().getId());
 
         // BR-TICKET-010 / BR-TICKET-011
         if (ticket.getStatus() != TicketStatus.PAID) {

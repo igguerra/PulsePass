@@ -3,6 +3,7 @@ package edu.unimag.pulsepass.persistence.service.impl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
 
 import edu.unimag.pulsepass.persistence.dto.request.LoginRequest;
 import edu.unimag.pulsepass.persistence.dto.response.AuthResponse;
@@ -12,6 +13,7 @@ import edu.unimag.pulsepass.persistence.security.JwtService;
 import edu.unimag.pulsepass.persistence.security.SecurityPrincipal;
 import edu.unimag.pulsepass.persistence.service.AuthService;
 
+@Service 
 public class AuthServiceImpl implements AuthService{
 
     private static final String TOKEN_TYPE = "Bearer"; 

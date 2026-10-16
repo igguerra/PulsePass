@@ -24,6 +24,15 @@ ambiente `PulsePass-local` seleccionado en Postman.
 - [ ] E2E-ART-04 Nombre sin distinguir mayúsculas (200)
 - [ ] E2E-ART-05 Artista inexistente (404)
 
+- [ ] E2E-EVT-01 Eventos publicados, anónimo (200, sin borradores)
+- [ ] E2E-EVT-02 Evento publicado por código, anónimo (200)
+- [ ] TC-SEC-004 Borrador por código, anónimo (404 sin datos)
+- [ ] TC-SEC-005 Eventos por artista, anónimo (solo EVT-E2E-PUB)
+- [ ] TC-SEC-015 Borrador como ADMIN (200 DRAFT)
+- [ ] E2E-EVT-03 Borrador como STAFF (200 DRAFT)
+- [ ] E2E-EVT-04 Borrador como USER_A (404)
+- [ ] E2E-EVT-05 Eventos por artista como ADMIN (PUB + DRAFT)
+
 ## Flujo B — Registro y JWT
 
 ### Registro de USER_A y USER_B — Valeria
@@ -47,7 +56,14 @@ ambiente `PulsePass-local` seleccionado en Postman.
 
 ## Flujo C — Gestión del catálogo (ADMIN) — Isabella
 
-<!-- Isabella: casos del Flujo C (PRD 9.3) -->
+- [ ] Login ADMIN fresco (E2E-AUTH-01)
+- [ ] TC-BIZ-003 Crear evento newEventCode (201 DRAFT)
+- [ ] E2E-EVT-06 Leer evento nuevo como ADMIN (200 DRAFT) → reenviar E2E-EVT-01: NO aparece
+- [ ] TC-BIZ-005 Asociar artista (200)
+- [ ] E2E-EVT-07 Asociar el mismo artista (409)
+- [ ] TC-BIZ-004 Publicar (200 PUBLISHED)
+- [ ] E2E-EVT-08 Publicar otra vez (409)
+- [ ] E2E-EVT-09 Leer evento nuevo, anónimo (200) → reenviar E2E-EVT-01 y TC-SEC-005: SÍ aparece
 
 ## Flujo D — Compra, propiedad, cancelación y uso — Valeria
 

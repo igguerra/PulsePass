@@ -83,7 +83,40 @@ ambiente `PulsePass-local` seleccionado en Postman.
 
 ### JWT y roles — Isabella
 
-<!-- Isabella: TC-AUTH-007 a 015, TC-SEC-001 a 005, 015, 017 -->
+**Token ausente o inválido**
+- [ ] TC-AUTH-007 /me sin header (401)
+- [ ] TC-AUTH-008 Bearer inventado (401)
+- [ ] TC-AUTH-009 JWT alterado (401) + token original da 200
+- [ ] TC-AUTH-012 Token en query string (401)
+- [ ] TC-AUTH-015 Token inválido en ruta pública (401)
+
+**Roles insuficientes en catálogo**
+- [ ] TC-SEC-001a Crear evento anónimo (401)
+- [ ] TC-SEC-001b / TC-AUTH-014 Crear evento USER_A (403)
+- [ ] E2E-SEC-01 Crear evento STAFF (403)
+- [ ] E2E-SEC-02 Verificar que EVT-DENY-01 no existe (404)
+- [ ] TC-SEC-002a/b Publicar con USER_A y STAFF (403)
+- [ ] E2E-SEC-03 EVT-E2E-TOPUB sigue en DRAFT
+- [ ] TC-SEC-003 / E2E-SEC-04 Asociar artista USER_A y STAFF (403)
+- [ ] E2E-SEC-05 EVT-E2E-TOPUB sin artistas
+
+**Usuario inactivo**
+- [ ] E2E-SEC-06/07 Login y /me de e2e_inactive (200)
+- [ ] deactivate-user.sql ejecutado
+- [ ] TC-AUTH-013 /me con token previo (401)
+- [ ] E2E-SEC-08 Login inactivo (401)
+
+**Revocación de rol**
+- [ ] E2E-SEC-09 Pagados como STAFF (200)
+- [ ] revoke-staff.sql ejecutado
+- [ ] TC-SEC-017 Mismo token (403) + E2E-SEC-10 /me roles []
+- [ ] promote-roles.sql ejecutado + E2E-SEC-11 (200)
+
+**Otra clave / otro issuer / expiración**
+- [ ] TC-AUTH-011a Firmado con otra clave (401)
+- [ ] TC-AUTH-011b Issuer distinto (401)
+- [ ] App reiniciada sin variables temporales; login ADMIN normal (200)
+- [ ] TC-AUTH-010 Token vencido, más de 16 min (401)
 
 ### Propiedad (IDOR) — Valeria
 

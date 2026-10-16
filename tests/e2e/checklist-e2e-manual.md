@@ -18,6 +18,12 @@ ambiente `PulsePass-local` seleccionado en Postman.
 - [ ] E2E-VEN-02 Venue por código (200)
 - [ ] E2E-VEN-03 Venue inexistente (404)
 
+- [ ] E2E-ART-01 Listar artistas activos (200) → copiar artistId
+- [ ] E2E-ART-02 Artista por ID (200)
+- [ ] E2E-ART-03 Artista por nombre (200)
+- [ ] E2E-ART-04 Nombre sin distinguir mayúsculas (200)
+- [ ] E2E-ART-05 Artista inexistente (404)
+
 ## Flujo B — Registro y JWT
 
 ### Registro de USER_A y USER_B — Valeria
@@ -26,7 +32,18 @@ ambiente `PulsePass-local` seleccionado en Postman.
 
 ### Login, /me y tokens — Isabella
 
-<!-- Isabella: login de A, B, STAFF, ADMIN, inactivo; /me; TC-AUTH-002 a 006 -->
+- [ ] E2E-AUTH-01 Login ADMIN (200) → copiar adminToken
+- [ ] E2E-AUTH-02 Login STAFF (200) → copiar staffToken
+- [ ] E2E-AUTH-03 Login INACTIVO (200) → copiar inactiveToken (no usar aún)
+- [ ] TC-AUTH-002 Login USER_A con username (200) → copiar userAToken
+- [ ] TC-AUTH-003 Login USER_A con email (200)
+- [ ] E2E-AUTH-04 Login USER_B (200) → copiar userBToken
+- [ ] TC-AUTH-004 Contraseña incorrecta (401 genérico)
+- [ ] TC-AUTH-005 Usuario inexistente (401, mismo mensaje que 004)
+- [ ] E2E-AUTH-ME-01 /me ADMIN (roles ["ADMIN"])
+- [ ] E2E-AUTH-ME-02 /me STAFF (roles ["STAFF"])
+- [ ] TC-AUTH-006 /me USER_A (identidad de A, roles ["USER"])
+- [ ] E2E-AUTH-ME-03 /me USER_B (roles ["USER"])
 
 ## Flujo C — Gestión del catálogo (ADMIN) — Isabella
 

@@ -6,15 +6,17 @@ ambiente `PulsePass-local` seleccionado en Postman.
 
 ## 00 Preparación — Isabella
 
-- [ ] Conectividad: `GET /api/venues/active` responde 200
-- [ ] Registrar `e2e_admin`, `e2e_staff`, `e2e_inactive` (`POST /api/users`)
-- [ ] Ejecutar `fixtures/promote-roles.sql` y verificar roles
-
-<!-- Isabella: casos adicionales de preparación -->
+- [ ] E2E-00-01 Conectividad: `GET /api/venues/active` (200)
+- [ ] E2E-00-02 Registrar ADMIN `e2e_admin` (201)
+- [ ] E2E-00-03 Registrar STAFF `e2e_staff` (201)
+- [ ] E2E-00-04 Registrar INACTIVO `e2e_inactive` (201)
+- [ ] Ejecutar `fixtures/promote-roles.sql` → verificar `e2e_admin | ADMIN` y `e2e_staff | STAFF`
 
 ## Flujo A — Descubrimiento público (sin token) — Isabella
 
-<!-- Isabella: casos del Flujo A (PRD 9.1) -->
+- [ ] E2E-VEN-01 Listar venues activos (200, sin VEN-E2E-OFF)
+- [ ] E2E-VEN-02 Venue por código (200)
+- [ ] E2E-VEN-03 Venue inexistente (404)
 
 ## Flujo B — Registro y JWT
 

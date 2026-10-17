@@ -173,6 +173,8 @@ No incluir JWT, contraseñas ni datos personales reales.
 | E2E-VAL-04 Ticket inexistente | USER_A | GET `/api/tickets/TKT-NO-EXISTE` | 404 | | | NOT RUN | |
 | E2E-VAL-05 Cancelar ticket inexistente | USER_A | PATCH `/api/tickets/TKT-NO-EXISTE/cancel` | 404 | | | NOT RUN | |
 
+## Consolidado
+
 | Módulo | PASS | FAIL | BLOCKED | NOT RUN |
 |---|---|---|---|---|
 | Venues / Artists / Events | 49 | 5 | 0 | 0 |
@@ -184,6 +186,7 @@ No incluir JWT, contraseñas ni datos personales reales.
 ## Defectos encontrados
 
 | ID | Caso | Descripción | Pasos para reproducir | HTTP esperado | HTTP observado | Severidad |
+|---|---|---|---|---|---|---|
 | DEF-01 | VAL-HTTP-04 | Un método HTTP no soportado en una ruta existente devuelve 500 en lugar de 405. Causa: `GlobalExceptionHandler` no maneja `HttpRequestMethodNotSupportedException` y cae en el handler genérico de `Exception`. | `PATCH /api/events/EVT-E2E-PUB` con Bearer de ADMIN, sin body | 405 | 500 | Media |
 | DEF-02 | VAL-HTTP-01 | Un path variable de tipo inválido devuelve 500 en lugar de 400. Causa: falta un handler para `MethodArgumentTypeMismatchException`. | `GET /api/artists/abc` sin token | 400 | 500 | Media |
 | DEF-03 | VAL-HTTP-02 | Un query param obligatorio ausente devuelve 500 en lugar de 400. Causa: falta un handler para `MissingServletRequestParameterException`. | `GET /api/artists/by-stage-name` sin el parámetro `stageName` | 400 | 500 | Media |

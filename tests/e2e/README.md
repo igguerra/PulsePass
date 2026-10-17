@@ -88,19 +88,19 @@ mutaciones, hacer un GET posterior.
 
 | # | Método | Ruta | Responsable | Caso nominal | Casos de seguridad / error | Resultado |
 |---|---|---|---|---|---|---|
-| 1 | GET | `/api/venues/{code}` | Isabella | | | NOT RUN |
-| 2 | GET | `/api/venues/active` | Isabella | | | NOT RUN |
-| 3 | POST | `/api/events` | Isabella | | | NOT RUN |
-| 4 | GET | `/api/events/{eventCode}` | Isabella | | | NOT RUN |
-| 5 | GET | `/api/events/published` | Isabella | | | NOT RUN |
-| 6 | PATCH | `/api/events/{eventCode}/publish` | Isabella | | | NOT RUN |
-| 7 | POST | `/api/events/{eventCode}/artists/{artistId}` | Isabella | | | NOT RUN |
-| 8 | GET | `/api/events/by-artist` | Isabella | | | NOT RUN |
-| 9 | GET | `/api/artists/{id}` | Isabella | | | NOT RUN |
-| 10 | GET | `/api/artists/by-stage-name` | Isabella | | | NOT RUN |
-| 11 | GET | `/api/artists/active` | Isabella | | | NOT RUN |
-| 12 | POST | `/api/auth/login` | Isabella | | | NOT RUN |
-| 13 | GET | `/api/auth/me` | Isabella | | | NOT RUN |
+| 1 | GET | `/api/venues/{code}` | Isabella | E2E-VEN-02 | E2E-VEN-03 (404) | PASS |
+| 2 | GET | `/api/venues/active` | Isabella | E2E-VEN-01, E2E-00-01 | — (ruta pública sin parámetros) | PASS |
+| 3 | POST | `/api/events` | Isabella | TC-BIZ-003 | TC-SEC-001a (401), TC-SEC-001b / TC-AUTH-014 (403), E2E-SEC-01 (403), VAL-EVT-01 a 05 (400), VAL-EVT-10 (404), VAL-EVT-12 a 14 (409), E2E-SEC-02 (integridad) | PASS |
+| 4 | GET | `/api/events/{eventCode}` | Isabella | E2E-EVT-02, E2E-EVT-06, E2E-EVT-09 | TC-SEC-004 (404 borrador), E2E-EVT-04 (404 USER), TC-SEC-015 / E2E-EVT-03 (200 DRAFT con ADMIN/STAFF), VAL-EVT-06 (404), VAL-HTTP-04 (405) | FAIL (DEF-01) |
+| 5 | GET | `/api/events/published` | Isabella | E2E-EVT-01 | TC-AUTH-015 (401 con token inválido) | PASS |
+| 6 | PATCH | `/api/events/{eventCode}/publish` | Isabella | TC-BIZ-004 | E2E-EVT-08 (409), TC-SEC-002a/b (403), E2E-SEC-03 (integridad), VAL-EVT-07 (404) | PASS |
+| 7 | POST | `/api/events/{eventCode}/artists/{artistId}` | Isabella | TC-BIZ-005 | E2E-EVT-07 (409), TC-SEC-003 / E2E-SEC-04 (403), E2E-SEC-05 (integridad), VAL-EVT-08 y 09 (404) | PASS |
+| 8 | GET | `/api/events/by-artist` | Isabella | TC-SEC-005 | E2E-EVT-05 (ADMIN ve DRAFT), VAL-EVT-11 (200 []), VAL-HTTP-03 (400) | FAIL (DEF-04) |
+| 9 | GET | `/api/artists/{id}` | Isabella | E2E-ART-02 | E2E-ART-05 (404), VAL-HTTP-01 (400) | FAIL (DEF-02) |
+| 10 | GET | `/api/artists/by-stage-name` | Isabella | E2E-ART-03, E2E-ART-04 | VAL-ART-01 (404), VAL-HTTP-02 (400) | FAIL (DEF-03) |
+| 11 | GET | `/api/artists/active` | Isabella | E2E-ART-01 | — (ruta pública sin parámetros) | PASS |
+| 12 | POST | `/api/auth/login` | Isabella | E2E-AUTH-01 a 04, TC-AUTH-002, TC-AUTH-003 | TC-AUTH-004 y 005 (401), E2E-SEC-08 (401 inactivo), VAL-AUTH-01 (400), VAL-HTTP-05 (415) | FAIL (DEF-05)  |
+| 13 | GET | `/api/auth/me` | Isabella | E2E-AUTH-ME-01 a 03, TC-AUTH-006 | TC-AUTH-007 a 013 (401), E2E-SEC-10 (roles [] tras revocación) | PASS |
 | 14 | POST | `/api/users` | Valeria | | | NOT RUN |
 | 15 | GET | `/api/users/by-email` | Valeria | | | NOT RUN |
 | 16 | GET | `/api/users/by-username` | Valeria | | | NOT RUN |
@@ -110,3 +110,54 @@ mutaciones, hacer un GET posterior.
 | 20 | GET | `/api/events/{eventCode}/tickets/paid` | Valeria | | | NOT RUN |
 | 21 | PATCH | `/api/tickets/{ticketCode}/cancel` | Valeria | | | NOT RUN |
 | 22 | PATCH | `/api/tickets/{ticketCode}/use` | Valeria | | | NOT RUN |
+
+Notas:
+- La columna **Resultado** se llena después de la corrida oficial (PASS si el caso nominal y todos los casos de la fila pasan; FAIL si alguno falla, indicando el DEF-XX).
+- VAL-HTTP-06 (ruta inexistente) no pertenece a ninguna de las 22 rutas; su resultado va solo en la bitácora.
+- TC-SEC-017 y E2E-SEC-09/11 (revocación de STAFF) usan la ruta 20; se listan en la fila 20.
+
+## 8. Pasos fuera de Postman (bloque de Isabella)
+
+Algunos casos de seguridad necesitan modificar la base o reiniciar la app.
+Ejecutarlos **en este orden**, después de todo lo demás, porque cambian el estado.
+
+| Caso | Paso externo | Restaurar después |
+|---|---|---|
+| TC-AUTH-013, E2E-SEC-08 | `fixtures/deactivate-user.sql` | No (e2e_inactive queda inactivo) |
+| TC-SEC-017 | `fixtures/revoke-staff.sql` | **Sí**: `fixtures/promote-roles.sql` |
+| TC-AUTH-011a | Reiniciar la app con una clave JWT temporal | Sí: reiniciar sin la variable |
+| TC-AUTH-011b | Reiniciar la app con otro issuer | Sí: reiniciar sin la variable |
+
+Ejecutar un script SQL (desde la raíz del repo):
+
+```bash
+docker cp tests/e2e/fixtures/<script>.sql pulsepass-e2e-db:/tmp/<script>.sql
+docker exec pulsepass-e2e-db psql -U pulsepass_e2e -d pulsepass_e2e -v ON_ERROR_STOP=1 -f /tmp/<script>.sql
+```
+
+Reinicio con clave temporal (PowerShell). La clave solo existe en esa ventana
+y nunca se guarda en archivos ni en Postman:
+
+```powershell
+$env:PULSEPASS_JWT_SECRET_BASE64 = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=e2e"
+# login ADMIN → copiar accessToken a otherKeyToken → Ctrl+C
+Remove-Item Env:PULSEPASS_JWT_SECRET_BASE64
+```
+
+Reinicio con otro issuer:
+
+```powershell
+$env:PULSEPASS_JWT_ISSUER = "otro-issuer"
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=e2e"
+# login ADMIN → copiar accessToken a otherIssuerToken → Ctrl+C
+Remove-Item Env:PULSEPASS_JWT_ISSUER
+```
+
+Las variables de entorno tienen prioridad sobre el `.env`, por eso no hace falta
+editarlo. Al terminar, arrancar la app normal y confirmar con un login de ADMIN.
+
+**Token vencido (TC-AUTH-010):** el TTL está fijo en `PT15M`. Al empezar la
+carpeta 07, copiar un token de USER_B a `expiredToken` y enviarlo al final,
+cuando hayan pasado más de 16 minutos (15 min + 30 s de tolerancia del reloj).
+Anotar la hora de emisión y la de envío.

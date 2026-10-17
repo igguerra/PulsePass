@@ -101,15 +101,15 @@ mutaciones, hacer un GET posterior.
 | 11 | GET | `/api/artists/active` | Isabella | E2E-ART-01 | — (ruta pública sin parámetros) | PASS |
 | 12 | POST | `/api/auth/login` | Isabella | E2E-AUTH-01 a 04, TC-AUTH-002, TC-AUTH-003 | TC-AUTH-004 y 005 (401), E2E-SEC-08 (401 inactivo), VAL-AUTH-01 (400), VAL-HTTP-05 (415) | FAIL (DEF-05)  |
 | 13 | GET | `/api/auth/me` | Isabella | E2E-AUTH-ME-01 a 03, TC-AUTH-006 | TC-AUTH-007 a 013 (401), E2E-SEC-10 (roles [] tras revocación) | PASS |
-| 14 | POST | `/api/users` | Valeria | | | NOT RUN |
-| 15 | GET | `/api/users/by-email` | Valeria | | | NOT RUN |
-| 16 | GET | `/api/users/by-username` | Valeria | | | NOT RUN |
-| 17 | POST | `/api/tickets` | Valeria | | | NOT RUN |
-| 18 | GET | `/api/tickets/{ticketCode}` | Valeria | | | NOT RUN |
-| 19 | GET | `/api/tickets/by-user` | Valeria | | | NOT RUN |
-| 20 | GET | `/api/events/{eventCode}/tickets/paid` | Valeria | | | NOT RUN |
-| 21 | PATCH | `/api/tickets/{ticketCode}/cancel` | Valeria | | | NOT RUN |
-| 22 | PATCH | `/api/tickets/{ticketCode}/use` | Valeria | | | NOT RUN |
+| 14 | POST | `/api/users` | Valeria | TC-AUTH-001, TC-BIZ-006 (USER_B) | E2E-USR-01 a 03 (400), TC-BIZ-006 duplicados (409), TC-SEC-016 | NOT RUN |
+| 15 | GET | `/api/users/by-email` | Valeria | E2E-USR-06, E2E-USR-08 (ADMIN) | TC-SEC-006 (403), E2E-USR-10 (401), E2E-USR-12 (404) | NOT RUN |
+| 16 | GET | `/api/users/by-username` | Valeria | E2E-USR-07, E2E-USR-09 (ADMIN) | TC-SEC-007 (403), E2E-USR-11 (401) | NOT RUN |
+| 17 | POST | `/api/tickets` | Valeria | TC-BIZ-007 (T1 y T2) | TC-SEC-008, TC-BIZ-014 (draft, aforo, edad), TC-BIZ-015, E2E-TKT-03 (401), E2E-TKT-04 (403), E2E-VAL-01 a 03 (400) | NOT RUN |
+| 18 | GET | `/api/tickets/{ticketCode}` | Valeria | TC-BIZ-008 | TC-SEC-009 (403), E2E-VAL-04 (404) | NOT RUN |
+| 19 | GET | `/api/tickets/by-user` | Valeria | E2E-TKT-01, E2E-TKT-02 (ADMIN) | TC-SEC-010 (403) | NOT RUN |
+| 20 | GET | `/api/events/{eventCode}/tickets/paid` | Valeria | TC-BIZ-009 (STAFF) | TC-SEC-013 (403) | NOT RUN |
+| 21 | PATCH | `/api/tickets/{ticketCode}/cancel` | Valeria | TC-BIZ-010 | TC-SEC-011 (403 sin mutación), TC-BIZ-011 (409), E2E-VAL-05 (404) | NOT RUN |
+| 22 | PATCH | `/api/tickets/{ticketCode}/use` | Valeria | TC-SEC-014 / TC-BIZ-012 (STAFF) | TC-SEC-012 (403 sin mutación), TC-BIZ-013 (409) | NOT RUN |
 
 Notas:
 - La columna **Resultado** se llena después de la corrida oficial (PASS si el caso nominal y todos los casos de la fila pasan; FAIL si alguno falla, indicando el DEF-XX).

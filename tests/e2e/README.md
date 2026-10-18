@@ -161,3 +161,31 @@ editarlo. Al terminar, arrancar la app normal y confirmar con un login de ADMIN.
 carpeta 07, copiar un token de USER_B a `expiredToken` y enviarlo al final,
 cuando hayan pasado más de 16 minutos (15 min + 30 s de tolerancia del reloj).
 Anotar la hora de emisión y la de envío.
+
+## 9. Trazabilidad requisito → caso → resultado
+
+| Criterio (PRD §19) | Casos que lo demuestran | Rutas | Resultado |
+|---|---|---|---|
+| AC-01 Registro y login | TC-AUTH-001, TC-BIZ-006, TC-AUTH-002/003, E2E-AUTH-01 a 04, TC-AUTH-006, E2E-AUTH-ME-01 a 03 | 12, 13, 14 | PASS |
+| AC-02 ADMIN publica | TC-BIZ-003, TC-BIZ-005, TC-BIZ-004, E2E-EVT-06, E2E-EVT-09, FLOW-01 a 04 | 3, 4, 5, 6, 7, 8 | PASS |
+| AC-03 USER sin privilegio | TC-SEC-001b / TC-AUTH-014, TC-SEC-002a/b, TC-SEC-003, E2E-SEC-01 a 05 | 3, 6, 7 | PASS |
+| AC-04 Protección de propiedad | TC-SEC-006, 007, 009, 010, 011, 012 (con verificación posterior), FLOW-07 | 15, 16, 18, 19, 21, 22 | PASS |
+| AC-05 Compra ajena | TC-SEC-008 + verificación (B sin tickets) | 17, 19 | PASS |
+| AC-06 Uso por STAFF | TC-SEC-014, TC-BIZ-012, TC-BIZ-013, FLOW-09 a 11 | 18, 22 | PASS |
+| AC-07 JWT inválido | TC-AUTH-007 a 013, TC-AUTH-015 | 5, 13 | PASS |
+| AC-08 Borradores | TC-SEC-004, TC-SEC-005, E2E-EVT-04, TC-SEC-015, E2E-EVT-03, E2E-EVT-05 | 4, 5, 8 | PASS |
+| AC-09 ErrorResponse | Carpetas 07 y 08 (400, 401, 403, 404, 409); VAL-HTTP-01 a 06 | todas | FAIL (DEF-01 a DEF-06: código 500; el contrato del body sí se cumple) |
+| AC-10 Verificación manual completa | 151 casos en la bitácora; consolidado 145 PASS / 6 FAIL / 0 BLOCKED / 0 NOT RUN | 1 a 22 | Completa |
+
+| Requisito funcional | Evidencia |
+|---|---|
+| FR-E2E-001/002 | Colección `PulsePass-Manual-E2E` importable con las 22 rutas (sección 7) |
+| FR-E2E-003/004 | Logins y /me de cada actor (carpeta 03b) |
+| FR-E2E-005/006 | Copia manual de tokens, artistId, ticketCode y flowTicketCode (sección 3) |
+| FR-E2E-007/008 | Matriz de acceso (sección 7) y verificaciones de integridad (E2E-SEC-02/03/05, TC-SEC-011/012) |
+| FR-E2E-009 | Revisión del ErrorResponse en las carpetas 07 y 08 |
+| FR-E2E-010/016 | `fixtures/README.md`, `seed-e2e.sql` idempotente, `runId` y `newEventCode`/`flowEventCode` variables |
+| FR-E2E-011/012 | `checklist-e2e-manual.md` y `registro-ejecucion-manual.md` |
+| FR-E2E-013 | Colección y ambiente exportados sin tokens ni contraseñas |
+| FR-E2E-014/015 | Defectos DEF-01 a 06 y observaciones OBS-01/02; 0 casos BLOCKED |
+| FR-E2E-017 | Decisiones de Fase 4 documentadas (sección 6) |

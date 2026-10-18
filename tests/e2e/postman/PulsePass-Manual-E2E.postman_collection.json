@@ -1,7 +1,8 @@
 {
   "info": {
     "_postman_id": "d981c43d-bf76-434e-9cef-023ea11bb0c1",
-    "name": "PulsePass — E2E Manual",
+    "name": "PulsePass-Manual-E2E",
+    "description": "Colección E2E manual de PulsePass (Fase 5). 22 rutas, sin scripts.  \nEjecución manual con Send, en el orden de tests/e2e/checklist-e2e-manual.md.  \nRequiere el ambiente PulsePass-local. Responsables: Isabella (00, 01, 02, 03b, 05, 07, 08a, 09) y Valeria (03a, 04, 06, 08b, 09).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "58987972",
     "_collection_link": "https://go.postman.co/collection/58987972-d981c43d-bf76-434e-9cef-023ea11bb0c1?source=collection_link"
@@ -3945,7 +3946,8 @@
                 "auth",
                 "me"
               ]
-            }
+            },
+            "description": "ID: E2E-SEC-07 (precondición de TC-AUTH-013)  \nObjetivo: confirmar que el token de e2e_inactive funciona antes de desactivarlo  \nPrecondiciones: inactiveToken obtenido con E2E-AUTH-03  \nAutorización: Bearer {{inactiveToken}}  \nEjecución: abrir request y pulsar Send; luego ejecutar deactivate-user.sql  \nHTTP esperado: 200  \nRevisión manual: username e2e_inactive  \nEvidencia: anotar en registro-ejecucion-manual.md"
           },
           "response": []
         },
@@ -4016,7 +4018,8 @@
                 "tickets",
                 "paid"
               ]
-            }
+            },
+            "description": "ID: E2E-SEC-09 (precondición de TC-SEC-017)  \nObjetivo: confirmar que STAFF accede a tickets pagados antes de revocar su rol  \nPrecondiciones: staffToken vigente  \nAutorización: Bearer {{staffToken}}  \nEjecución: abrir request y pulsar Send; luego ejecutar revoke-staff.sql  \nHTTP esperado: 200  \nRevisión manual: arreglo de tickets pagados (puede venir vacío)  \nEvidencia: anotar en registro-ejecucion-manual.md"
           },
           "response": []
         },
@@ -4052,7 +4055,8 @@
                 "tickets",
                 "paid"
               ]
-            }
+            },
+            "description": "ID: E2E-SEC-11 (cierre de TC-SEC-017)  \nObjetivo: al restaurar el rol, el mismo token recupera el acceso  \nPrecondiciones: promote-roles.sql ejecutado después de la revocación  \nAutorización: Bearer {{staffToken}} (el mismo de E2E-SEC-09)  \nEjecución: abrir request y pulsar Send  \nHTTP esperado: 200  \nRevisión manual: acceso restablecido; los roles se leen de la base en cada petición  \nEvidencia: anotar en registro-ejecucion-manual.md"
           },
           "response": []
         },
@@ -4123,7 +4127,8 @@
                 "auth",
                 "me"
               ]
-            }
+            },
+            "description": "ID: E2E-SEC-10 (complemento de TC-SEC-017)  \nObjetivo: el usuario sigue autenticado pero sin roles tras la revocación  \nPrecondiciones: revoke-staff.sql ejecutado  \nAutorización: Bearer {{staffToken}} (el mismo de E2E-SEC-09)  \nEjecución: abrir request y pulsar Send  \nHTTP esperado: 200  \nRevisión manual: username e2e_staff, roles \\[\\]  \nEvidencia: anotar en registro-ejecucion-manual.md"
           },
           "response": []
         },
@@ -4689,7 +4694,8 @@
                       "value": "Artista Fantasma"
                     }
                   ]
-                }
+                },
+                "description": "ID: VAL-EVT-11  \nObjetivo: una búsqueda sin resultados no es un error  \nPrecondiciones: ninguna  \nAutorización: ninguna  \nEjecución: abrir request y pulsar Send  \nHTTP esperado: 200  \nRevisión manual: arreglo vacío \\[\\] (a diferencia de VAL-ART-01, que busca un artista concreto y da 404)  \nEvidencia: anotar en registro-ejecucion-manual.md"
               },
               "response": []
             },

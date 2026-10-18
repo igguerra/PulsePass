@@ -113,75 +113,90 @@ No incluir JWT, contraseñas ni datos personales reales.
 
 | Caso | Actor | Ruta | HTTP esperado | HTTP observado | JSON / estado observado | Resultado | Evidencia / observación |
 |---|---|---|---|---|---|---|---|
-| TC-AUTH-001 Registrar USER_A | anónimo | POST `/api/users` | 201 | | | NOT RUN | |
-| TC-BIZ-006 Registrar USER_B | anónimo | POST `/api/users` | 201 | | | NOT RUN | |
-| E2E-USR-01 Registro con email mal formado | anónimo | POST `/api/users` | 400 | | | NOT RUN | |
-| E2E-USR-02 Registro con password de 11 caracteres | anónimo | POST `/api/users` | 400 | | | NOT RUN | |
-| E2E-USR-03 Registro con firstName vacío | anónimo | POST `/api/users` | 400 | | | NOT RUN | |
-| TC-BIZ-006 Duplicado: mismo username | anónimo | POST `/api/users` | 409 | | | NOT RUN | |
-| TC-BIZ-006 Duplicado: email de A en mayúsculas | anónimo | POST `/api/users` | 409 | | | NOT RUN | |
-| TC-SEC-016 Registro con role ADMIN inyectado | anónimo | POST `/api/users` | 201 | | | NOT RUN | |
-| E2E-USR-04 Registrar usuario menor (2012) | anónimo | POST `/api/users` | 201 | | | NOT RUN | |
-| E2E-USR-05 Login usuario menor | anónimo | POST `/api/auth/login` | 200 | | | NOT RUN | |
-| E2E-USR-06 USER_A consulta su email | USER_A | GET `/api/users/by-email?email=…` | 200 | | | NOT RUN | |
-| E2E-USR-07 USER_A consulta su username | USER_A | GET `/api/users/by-username?username=…` | 200 | | | NOT RUN | |
-| TC-SEC-006 USER_B consulta email de A | USER_B | GET `/api/users/by-email?email=…` | 403 | | | NOT RUN | |
-| TC-SEC-007 USER_B consulta username de A | USER_B | GET `/api/users/by-username?username=…` | 403 | | | NOT RUN | |
-| E2E-USR-08 ADMIN consulta email de A | ADMIN | GET `/api/users/by-email?email=…` | 200 | | | NOT RUN | |
-| E2E-USR-09 ADMIN consulta username de A | ADMIN | GET `/api/users/by-username?username=…` | 200 | | | NOT RUN | |
-| E2E-USR-10 Sin token: by-email | anónimo | GET `/api/users/by-email?email=…` | 401 | | | NOT RUN | |
-| E2E-USR-11 Sin token: by-username | anónimo | GET `/api/users/by-username?username=…` | 401 | | | NOT RUN | |
-| E2E-USR-12 Email inexistente | USER_B | GET `/api/users/by-email?email=…` | 404 | | | NOT RUN | |
+| TC-AUTH-001 Registrar USER_A | anónimo | POST `/api/users` | 201 | 201 | id presente, username e2e_user_a, active true; sin password, passwordHash ni accessToken | PASS | |
+| TC-BIZ-006 Registrar USER_B | anónimo | POST `/api/users` | 201 | 201 | id distinto al de A, email de B, active true; sin password | PASS | |
+| E2E-USR-01 Registro con email mal formado | anónimo | POST `/api/users` | 400 | 400 | "Validation Failed", details.email | PASS | Ningún usuario creado |
+| E2E-USR-02 Registro con password de 11 caracteres | anónimo | POST `/api/users` | 400 | 400 | "Validation Failed", details.password (rango 12–72) | PASS | |
+| E2E-USR-03 Registro con firstName vacío | anónimo | POST `/api/users` | 400 | 400 | details.firstName "First name is required" | PASS | |
+| TC-BIZ-006 Duplicado: mismo username | anónimo | POST `/api/users` | 409 | 409 | "Username already exists." | PASS | |
+| TC-BIZ-006 Duplicado: email de A en mayúsculas | anónimo | POST `/api/users` | 409 | 409 | "Email already exists." | PASS | Unicidad sin distinguir mayúsculas |
+| TC-SEC-016 Registro con role ADMIN inyectado | anónimo | POST `/api/users` | 201 | 201 | Usuario creado; sin password | PASS | Verificado con SQL: rol en la base = USER, no ADMIN |
+| E2E-USR-04 Registrar usuario menor (2012) | anónimo | POST `/api/users` | 201 | 201 | birthDate 2012-05-10, active true | PASS | |
+| E2E-USR-05 Login usuario menor | anónimo | POST `/api/auth/login` | 200 | 200 | tokenType Bearer, expiresIn 900 | PASS | Token copiado a minorToken |
+| E2E-USR-06 USER_A consulta su email | USER_A | GET `/api/users/by-email?email=…` | 200 | 200 | username y email de A; sin password | PASS | |
+| E2E-USR-07 USER_A consulta su username | USER_A | GET `/api/users/by-username?username=…` | 200 | 200 | Mismo id que E2E-USR-06; sin password | PASS | |
+| TC-SEC-006 USER_B consulta email de A | USER_B | GET `/api/users/by-email?email=…` | 403 | 403 | ErrorResponse 403; sin datos personales de A | PASS | |
+| TC-SEC-007 USER_B consulta username de A | USER_B | GET `/api/users/by-username?username=…` | 403 | 403 | ErrorResponse 403; sin datos personales de A | PASS | |
+| E2E-USR-08 ADMIN consulta email de A | ADMIN | GET `/api/users/by-email?email=…` | 200 | 200 | Datos de A; sin password | PASS | |
+| E2E-USR-09 ADMIN consulta username de A | ADMIN | GET `/api/users/by-username?username=…` | 200 | 200 | Datos de A; sin password | PASS | |
+| E2E-USR-10 Sin token: by-email | anónimo | GET `/api/users/by-email?email=…` | 401 | 401 | ErrorResponse 401 genérico | PASS | |
+| E2E-USR-11 Sin token: by-username | anónimo | GET `/api/users/by-username?username=…` | 401 | 401 | ErrorResponse 401 genérico | PASS | |
+| E2E-USR-12 Email inexistente | USER_B | GET `/api/users/by-email?email=…` | 404 | 404 | ErrorResponse 404 | PASS | Ver OBS-01 |
 
 ## Tickets — Valeria
 
 | Caso | Actor | Ruta | HTTP esperado | HTTP observado | JSON / estado observado | Resultado | Evidencia / observación |
 |---|---|---|---|---|---|---|---|
-| TC-BIZ-007 USER_A compra T1 en EVT-E2E-PUB | USER_A | POST `/api/tickets` | 201 | | | NOT RUN | |
-| TC-BIZ-008 USER_A lee T1 | USER_A | GET `/api/tickets/{T1}` | 200 | | | NOT RUN | |
-| TC-SEC-009 USER_B lee T1 de A | USER_B | GET `/api/tickets/{T1}` | 403 | | | NOT RUN | |
-| TC-SEC-011 USER_B cancela T1 de A | USER_B | PATCH `/api/tickets/{T1}/cancel` | 403 | | | NOT RUN | |
-| TC-SEC-011 verificación: T1 sigue PAID | USER_A | GET `/api/tickets/{T1}` | 200 | | | NOT RUN | |
-| TC-BIZ-010 USER_A cancela T1 | USER_A | PATCH `/api/tickets/{T1}/cancel` | 200 | | | NOT RUN | |
-| TC-BIZ-010 verificación: T1 CANCELLED | USER_A | GET `/api/tickets/{T1}` | 200 | | | NOT RUN | |
-| TC-BIZ-011 Cancelar T1 otra vez | USER_A | PATCH `/api/tickets/{T1}/cancel` | 409 | | | NOT RUN | |
-| TC-BIZ-007 USER_A compra T2 (VIP) | USER_A | POST `/api/tickets` | 201 | | | NOT RUN | |
-| TC-BIZ-009 STAFF lista pagados de EVT-E2E-PUB | STAFF | GET `/api/events/EVT-E2E-PUB/tickets/paid` | 200 | | | NOT RUN | |
-| TC-SEC-013 USER_A lista pagados | USER_A | GET `/api/events/EVT-E2E-PUB/tickets/paid` | 403 | | | NOT RUN | |
-| TC-SEC-012 USER_B usa T2 de A | USER_B | PATCH `/api/tickets/{T2}/use` | 403 | | | NOT RUN | |
-| TC-SEC-012 verificación: T2 sigue PAID | USER_A | GET `/api/tickets/{T2}` | 200 | | | NOT RUN | |
-| TC-SEC-014 STAFF marca T2 como usado | STAFF | PATCH `/api/tickets/{T2}/use` | 200 | | | NOT RUN | |
-| TC-BIZ-013 STAFF usa T2 otra vez | STAFF | PATCH `/api/tickets/{T2}/use` | 409 | | | NOT RUN | |
-| TC-BIZ-012 verificación: T2 USED | USER_A | GET `/api/tickets/{T2}` | 200 | | | NOT RUN | |
-| E2E-TKT-01 USER_A lista sus tickets | USER_A | GET `/api/tickets/by-user?email=…` | 200 | | | NOT RUN | |
-| TC-SEC-010 USER_B lista tickets de A | USER_B | GET `/api/tickets/by-user?email=…` | 403 | | | NOT RUN | |
-| E2E-TKT-02 ADMIN lista tickets de A | ADMIN | GET `/api/tickets/by-user?email=…` | 200 | | | NOT RUN | |
-| TC-SEC-008 USER_A compra con el email de B | USER_A | POST `/api/tickets` | 403 | | | NOT RUN | |
-| TC-SEC-008 verificación: B no tiene tickets | USER_B | GET `/api/tickets/by-user?email=…` | 200 | | | NOT RUN | |
-| TC-BIZ-014 Compra en evento DRAFT | USER_A | POST `/api/tickets` | 409 | | | NOT RUN | |
-| TC-BIZ-015 Compra en evento inexistente | USER_A | POST `/api/tickets` | 404 | | | NOT RUN | |
-| TC-BIZ-014 Aforo: USER_A compra el único cupo | USER_A | POST `/api/tickets` | 201 | | | NOT RUN | |
-| TC-BIZ-014 Aforo: USER_B intenta comprar | USER_B | POST `/api/tickets` | 409 | | | NOT RUN | |
-| TC-BIZ-014 Aforo verificación: un solo pagado | STAFF | GET `/api/events/EVT-E2E-FULL/tickets/paid` | 200 | | | NOT RUN | |
-| TC-BIZ-014 Edad: menor compra en EVT-E2E-ADULT | MENOR | POST `/api/tickets` | 409 | | | NOT RUN | |
-| TC-BIZ-014 Edad verificación: menor sin tickets | MENOR | GET `/api/tickets/by-user?email=…` | 200 | | | NOT RUN | |
-| E2E-TKT-03 Compra sin token | anónimo | POST `/api/tickets` | 401 | | | NOT RUN | |
-| E2E-TKT-04 ADMIN intenta comprar | ADMIN | POST `/api/tickets` | 403 | | | NOT RUN | |
-| E2E-VAL-01 Compra sin userEmail | USER_A | POST `/api/tickets` | 400 | | | NOT RUN | |
-| E2E-VAL-02 Compra con type inválido | USER_A | POST `/api/tickets` | 400 | | | NOT RUN | |
-| E2E-VAL-03 Compra con JSON mal formado | USER_A | POST `/api/tickets` | 400 | | | NOT RUN | |
-| E2E-VAL-04 Ticket inexistente | USER_A | GET `/api/tickets/TKT-NO-EXISTE` | 404 | | | NOT RUN | |
-| E2E-VAL-05 Cancelar ticket inexistente | USER_A | PATCH `/api/tickets/TKT-NO-EXISTE/cancel` | 404 | | | NOT RUN | |
+| TC-BIZ-007 USER_A compra T1 en EVT-E2E-PUB | USER_A | POST `/api/tickets` | 201 | 201 | status PAID, type GENERAL, price 100.00, userEmail de A | PASS | ticketCode copiado a ticketCancelableCode |
+| TC-BIZ-008 USER_A lee T1 | USER_A | GET `/api/tickets/{T1}` | 200 | 200 | status PAID, userEmail de A | PASS | |
+| TC-SEC-009 USER_B lee T1 de A | USER_B | GET `/api/tickets/{T1}` | 403 | 403 | ErrorResponse 403; sin ticketCode, precio ni email de A | PASS | |
+| TC-SEC-011 USER_B cancela T1 de A | USER_B | PATCH `/api/tickets/{T1}/cancel` | 403 | 403 | ErrorResponse 403 | PASS | |
+| TC-SEC-011 verificación: T1 sigue PAID | USER_A | GET `/api/tickets/{T1}` | 200 | 200 | Sin cambios: status PAID | PASS | |
+| TC-BIZ-010 USER_A cancela T1 | USER_A | PATCH `/api/tickets/{T1}/cancel` | 200 | 200 | status CANCELLED | PASS | |
+| TC-BIZ-010 verificación: T1 CANCELLED | USER_A | GET `/api/tickets/{T1}` | 200 | 200 | status CANCELLED | PASS | |
+| TC-BIZ-011 Cancelar T1 otra vez | USER_A | PATCH `/api/tickets/{T1}/cancel` | 409 | 409 | message: solo se cancelan tickets PAID | PASS | |
+| TC-BIZ-007 USER_A compra T2 (VIP) | USER_A | POST `/api/tickets` | 201 | 201 | status PAID, type VIP, price 200.00 | PASS | ticketCode copiado a ticketUsableCode |
+| TC-BIZ-009 STAFF lista pagados de EVT-E2E-PUB | STAFF | GET `/api/events/EVT-E2E-PUB/tickets/paid` | 200 | 200 | Incluye T2; no incluye T1 (cancelado); todos PAID | PASS | |
+| TC-SEC-013 USER_A lista pagados | USER_A | GET `/api/events/EVT-E2E-PUB/tickets/paid` | 403 | 403 | ErrorResponse 403 | PASS | |
+| TC-SEC-012 USER_B usa T2 de A | USER_B | PATCH `/api/tickets/{T2}/use` | 403 | 403 | ErrorResponse 403 | PASS | |
+| TC-SEC-012 verificación: T2 sigue PAID | USER_A | GET `/api/tickets/{T2}` | 200 | 200 | Sin cambios: status PAID | PASS | |
+| TC-SEC-014 STAFF marca T2 como usado | STAFF | PATCH `/api/tickets/{T2}/use` | 200 | 200 | status USED | PASS | |
+| TC-BIZ-013 STAFF usa T2 otra vez | STAFF | PATCH `/api/tickets/{T2}/use` | 409 | 409 | "Only PAID tickets can be marked as used: …" | PASS | |
+| TC-BIZ-012 verificación: T2 USED | USER_A | GET `/api/tickets/{T2}` | 200 | 200 | status USED | PASS | |
+| E2E-TKT-01 USER_A lista sus tickets | USER_A | GET `/api/tickets/by-user?email=…` | 200 | 200 | T1 (CANCELLED) y T2 (USED), todos de A | PASS | |
+| TC-SEC-010 USER_B lista tickets de A | USER_B | GET `/api/tickets/by-user?email=…` | 403 | 403 | ErrorResponse 403; sin tickets de A | PASS | |
+| E2E-TKT-02 ADMIN lista tickets de A | ADMIN | GET `/api/tickets/by-user?email=…` | 200 | 200 | Mismo contenido que E2E-TKT-01 | PASS | |
+| TC-SEC-008 USER_A compra con el email de B | USER_A | POST `/api/tickets` | 403 | 403 | ErrorResponse 403 | PASS | |
+| TC-SEC-008 verificación: B no tiene tickets | USER_B | GET `/api/tickets/by-user?email=…` | 200 | 200 | Arreglo vacío [] | PASS | No se creó ticket a nombre de B |
+| TC-BIZ-014 Compra en evento DRAFT | USER_A | POST `/api/tickets` | 409 | 409 | "Event is not published: EVT-E2E-DRAFT" | PASS | |
+| TC-BIZ-015 Compra en evento inexistente | USER_A | POST `/api/tickets` | 404 | 404 | "Event not found: EVT-E2E-NOPE" | PASS | |
+| TC-BIZ-014 Aforo: USER_A compra el único cupo | USER_A | POST `/api/tickets` | 201 | 201 | status PAID, type STUDENT, price 70.00 | PASS | EVT-E2E-FULL pasa a SOLD_OUT |
+| TC-BIZ-014 Aforo: USER_B intenta comprar | USER_B | POST `/api/tickets` | 409 | 409 | "Event is not published: EVT-E2E-FULL" | PASS | Ver OBS-02 |
+| TC-BIZ-014 Aforo verificación: un solo pagado | STAFF | GET `/api/events/EVT-E2E-FULL/tickets/paid` | 200 | 200 | Exactamente 1 ticket, de USER_A | PASS | |
+| TC-BIZ-014 Edad: menor compra en EVT-E2E-ADULT | MENOR | POST `/api/tickets` | 409 | 409 | "User does not meet minimum age for event: EVT-E2E-ADULT" | PASS | |
+| TC-BIZ-014 Edad verificación: menor sin tickets | MENOR | GET `/api/tickets/by-user?email=…` | 200 | 200 | Arreglo vacío [] | PASS | |
+| E2E-TKT-03 Compra sin token | anónimo | POST `/api/tickets` | 401 | 401 | ErrorResponse 401 genérico | PASS | |
+| E2E-TKT-04 ADMIN intenta comprar | ADMIN | POST `/api/tickets` | 403 | 403 | ErrorResponse 403 | PASS | |
+| E2E-VAL-01 Compra sin userEmail | USER_A | POST `/api/tickets` | 400 | 400 | "Validation Failed", details.userEmail | PASS | |
+| E2E-VAL-02 Compra con type inválido | USER_A | POST `/api/tickets` | 400 | 400 | "Malformed JSON request" | PASS | Ningún ticket creado |
+| E2E-VAL-03 Compra con JSON mal formado | USER_A | POST `/api/tickets` | 400 | 400 | "Malformed JSON request" | PASS | |
+| E2E-VAL-04 Ticket inexistente | USER_A | GET `/api/tickets/TKT-NO-EXISTE` | 404 | 404 | "Ticket not found: TKT-NO-EXISTE" | PASS | |
+| E2E-VAL-05 Cancelar ticket inexistente | USER_A | PATCH `/api/tickets/TKT-NO-EXISTE/cancel` | 404 | 404 | ErrorResponse 404 | PASS | |
 
-## Consolidado
+## Flujos de negocio — Isabella y Valeria
+
+| Caso | Actor | Ruta | HTTP esperado | HTTP observado | JSON / estado observado | Resultado | Evidencia / observación |
+|---|---|---|---|---|---|---|---|
+| FLOW-01 | ADMIN | POST /api/events | 201 | 201 | eventCode EVT-FLOW-01, status DRAFT, artists [] | PASS | |
+| FLOW-02 | ADMIN | POST /api/events/EVT-FLOW-01/artists/{artistId} | 200 | 200 | artists [Solar Beat], status DRAFT | PASS | |
+| FLOW-03 | ADMIN | PATCH /api/events/EVT-FLOW-01/publish | 200 | 200 | status PUBLISHED, artists [Solar Beat] | PASS | |
+| FLOW-04 | Anónimo | GET /api/events/published | 200 | 200 | Incluye EVT-FLOW-01 con status PUBLISHED | PASS | |
+| FLOW-05 | USER_A | POST /api/tickets | 201 | 201 | status PAID, type GENERAL, userEmail de A, eventCode EVT-FLOW-01 | PASS | ticketCode copiado a flowTicketCode. Un primer intento dio 403 por un token equivocado en la variable userAToken; se rehízo el login y pasó |
+| FLOW-06 | USER_A | GET /api/tickets/{flowTicketCode} | 200 | 200 | status PAID, userEmail de A | PASS | |
+| FLOW-07 | USER_B | GET /api/tickets/{flowTicketCode} | 403 | 403 | ErrorResponse 403; sin datos del ticket | PASS | |
+| FLOW-08 | STAFF | GET /api/events/EVT-FLOW-01/tickets/paid | 200 | 200 | Un solo ticket (flowTicketCode), status PAID | PASS | |
+| FLOW-09 | STAFF | PATCH /api/tickets/{flowTicketCode}/use | 200 | 200 | status USED | PASS | |
+| FLOW-10 | USER_A | GET /api/tickets/{flowTicketCode} | 200 | 200 | status USED | PASS | |
+| FLOW-11 | STAFF | PATCH /api/tickets/{flowTicketCode}/use | 409 | 409 | "Only PAID tickets can be marked as used: …" | PASS | |
 
 | Módulo | PASS | FAIL | BLOCKED | NOT RUN |
 |---|---|---|---|---|
 | Venues / Artists / Events | 49 | 5 | 0 | 0 |
 | Auth / JWT | 31 | 1 | 0 | 0 |
-| Users | | | | |
-| Tickets | | | | |
-| **Total** | | | | |
+| Users | 19 | 0 | 0 | 0 |
+| Tickets | 35 | 0 | 0 | 0 |
+| Flujos de negocio | 11 | 0 | 0 | 0 |
+| **Total** | **145** | **6** | **0** | **0** |
 
 ## Defectos encontrados
 
@@ -193,3 +208,5 @@ No incluir JWT, contraseñas ni datos personales reales.
 | DEF-04 | VAL-HTTP-03 | Mismo defecto que DEF-03 en la búsqueda de eventos por artista. | `GET /api/events/by-artist` sin el parámetro `stageName` | 400 | 500 | Media |
 | DEF-05 | VAL-HTTP-05 | Un body con Content-Type distinto de JSON devuelve 500 en lugar de 415. Causa: falta un handler para `HttpMediaTypeNotSupportedException`. | `POST /api/auth/login` con Body raw → Text (`text/plain`) | 415 | 500 | Media |
 | DEF-06 | VAL-HTTP-06 | Una ruta inexistente (con usuario autenticado) devuelve 500 en lugar de 404. Causa: falta un handler para `NoResourceFoundException`. | `GET /api/ruta-inexistente` con Bearer de ADMIN | 404 | 500 | Media |
+| OBS-01 | E2E-USR-12 | Observación (no es FAIL): `GET /api/users/by-email` responde 404 si el email no existe y 403 si existe pero es de otro usuario. La diferencia permite a un USER averiguar qué emails están registrados (enumeración). | Con token de USER_B: consultar un email inexistente (404) y el email de USER_A (403) | 403 uniforme (recomendado) | 404 | Observación |
+| OBS-02 | TC-BIZ-014 Aforo | Observación (no es FAIL): al agotarse el aforo, el evento pasa a SOLD_OUT y una nueva compra responde "Event is not published: EVT-E2E-FULL" en lugar de un mensaje de capacidad agotada. El 409 es correcto, pero el mensaje confunde al cliente. | USER_A compra el único cupo de EVT-E2E-FULL; luego USER_B intenta comprar | 409 con mensaje de aforo agotado | 409 "Event is not published" | Observación |

@@ -7,7 +7,7 @@
 | Fecha | 2026-10-16 |
 | runId | run01 |
 | Ejecutado por | Isabella (Venues, Artists, Events, Auth/JWT) y Valeria (Users, Tickets) |
-| Commit del backend | (resultado de `git rev-parse --short HEAD` en main) |
+| Commit del backend | 19a264e |
 | Base de datos | `pulsepass_e2e` (limpia + `seed-e2e.sql`) |
 
 Resultados posibles: `PASS`, `FAIL`, `BLOCKED`, `NOT RUN`.

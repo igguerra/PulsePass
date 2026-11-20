@@ -9,10 +9,11 @@ interface EventCardProps {
   event: EventSummaryResponse
 }
 
-// Tarjeta de la cartelera (FR-FE-EVT-001): nombre, fecha, categoría, estado y sede
+// Tarjeta de la cartelera (FR-FE-EVT-001): nombre, fecha, categoría, estado y sede.
+// Toda la tarjeta es clicable (9.4): el ::after del enlace la cubre completa.
 export default function EventCard({ event }: EventCardProps) {
   return (
-    <Card className="flex h-full flex-col gap-2">
+    <Card className="relative flex h-full flex-col gap-2 transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold tracking-wide text-marca-600 uppercase">
           {CATEGORY_LABEL[event.category]}
@@ -22,7 +23,7 @@ export default function EventCard({ event }: EventCardProps) {
       <h2 className="text-lg font-semibold">
         <Link
           to={ROUTES.event(event.eventCode)}
-          className="hover:text-marca-600 focus-visible:outline-2 focus-visible:outline-marca-600"
+          className="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-marca-600"
         >
           {event.name}
         </Link>

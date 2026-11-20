@@ -48,7 +48,7 @@ export const CreateEventRequestSchema = z.object({
   eventCode: z.string().trim().min(1, 'Ingresa el código del evento'),
   name: z.string().trim().min(1, 'Ingresa el nombre'),
   description: z.string().max(1000, 'Máximo 1000 caracteres'),
-  category: EventCategorySchema,
+  category: z.enum(EventCategorySchema.options, { error: 'Selecciona una categoría' }),
   // <input type="datetime-local"> entrega "2026-12-12T20:00", que Spring acepta como LocalDateTime
   eventDate: z.string().min(1, 'Selecciona la fecha y hora'),
   minimumAge: z.number({ error: 'Ingresa un número' }).int('Debe ser entero').min(0, 'Debe ser 0 o mayor'),

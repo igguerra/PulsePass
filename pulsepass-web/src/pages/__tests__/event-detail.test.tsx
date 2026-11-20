@@ -36,15 +36,20 @@ describe('Detalle de evento', () => {
     const user = userEvent.setup()
     const { router } = renderWithProviders({ route: ROUTE })
     await user.click(await screen.findByRole('link', { name: 'Inicia sesión para comprar' }))
+    // /login se carga perezosamente: se espera a que aparezca antes de revisar la URL
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
-    expect(router.state.location.state).toMatchObject({ from: ROUTE })
   })
 
-  it('USER con evento publicado → abre el modal de compra', async () => {
+    it('USER elige el tipo y abre la confirmación con ese tipo', async () => {
     const user = userEvent.setup()
     renderWithProviders({ route: ROUTE, as: 'andrea' })
-    await user.click(await screen.findByRole('button', { name: 'Comprar entrada' }))
-    expect(screen.getByRole('dialog', { name: 'Comprar entrada · Caribbean Music Fest 2026' })).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'General' })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: 'VIP' }))
+    await user.click(screen.getByRole('button', { name: 'Comprar entrada' }))
+    const dialog = screen.getByRole('dialog', { name: 'Confirmar compra' })
+    expect(dialog).toHaveTextContent('Tipo: VIP')
+    expect(dialog).toHaveTextContent('Evento: Caribbean Music Fest 2026')
   })
 
   it('STAFF → el panel de compra no se muestra', async () => {

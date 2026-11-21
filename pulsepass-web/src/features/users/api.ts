@@ -1,9 +1,21 @@
 import { http } from '../../lib/http'
-import { UserResponseSchema, type UserResponse } from './types'
+import {
+  UserResponseSchema,
+  type RegisterUserRequest,
+  type UserResponse,
+} from './types'
 
-// La base solo trae esta función porque AuthContext la necesita para conocer el email.
-// Quien haga Register/Account agrega aquí registerUser y getUserByEmail.
+// AuthContext necesita esta función para conocer el email. No borrar.
 export function getUserByUsername(username: string, token?: string): Promise<UserResponse> {
   const query = new URLSearchParams({ username })
   return http(`/users/by-username?${query}`, UserResponseSchema, token ? { token } : {})
+}
+
+export function registerUser(body: RegisterUserRequest): Promise<UserResponse> {
+  return http('/users', UserResponseSchema, { method: 'POST', body })
+}
+
+export function getUserByEmail(email: string): Promise<UserResponse> {
+  const query = new URLSearchParams({ email })
+  return http(`/users/by-email?${query}`, UserResponseSchema)
 }

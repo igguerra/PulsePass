@@ -594,7 +594,7 @@ pulsepass-web/src/
 ├── main.tsx         Proveedores: QueryClient, AuthProvider, ToastProvider y RouterProvider
 ├── router.tsx       Rutas, carga perezosa de páginas y guardas por rol
 ├── lib/             http.ts (cliente HTTP y ApiError), routes.ts, format.ts, queryClient.ts, schemas.ts
-├── components/      Componentes de interfaz reutilizables (Button, Modal, Table, Toast...)
+├── components/      Componentes de interfaz reutilizables (Button, Modal, Table, Toast, PasswordField, ThemeToggle...)
 ├── layouts/         Layout, Navbar y guardas (ProtectedRoute, RoleRoute, GuestOnlyRoute)
 ├── features/        Un módulo por recurso: types.ts (esquemas zod), api.ts, hooks.ts y components/
 │   ├── auth/        Sesión (AuthContext) y login
@@ -610,8 +610,9 @@ Decisiones principales:
 - **TanStack Query** guarda en caché las consultas, maneja carga y error, y después de cada mutación actualiza o invalida solo las consultas afectadas (por ejemplo, una compra invalida los tickets del usuario y el evento, que pudo quedar agotado). No reintenta errores 4xx.
 - **Sesión** en `sessionStorage` (`pulsepass.session`), modelada como unión discriminada (`loading`, `anonymous`, `authenticated`). Al iniciar sesión se llama a `/auth/me` y a `/users/by-username` para tener el email. Un 401 o el vencimiento de los 15 minutos cierran la sesión, limpian la caché y llevan al login con el aviso "Tu sesión expiró".
 - **Guardas de ruta** (`ProtectedRoute`, `RoleRoute`, `GuestOnlyRoute`) que redirigen al login o a `/403`. Son comodidad para el usuario: la protección real la hace el backend.
-- **Formularios** con React Hook Form y zod; un 400 del backend se pinta debajo del campo correspondiente y un 409 como aviso del formulario.
-- **Filtros en la URL** (`?q=` y `?category=` en la cartelera, `?status=` en mis tickets), para que se puedan compartir y sobrevivan a recargar.
+- **Formularios** con React Hook Form y zod; un 400 del backend se pinta debajo del campo correspondiente y un 409 como aviso del formulario. Los campos de contraseña (`PasswordField`) tienen un botón para mostrarla u ocultarla, y el registro pide confirmarla: `confirmPassword` solo existe en el cliente (`RegisterFormSchema`) y nunca se envía al backend.
+- **Filtros en la URL** (`?q=`, `?categoria=` y `?artista=` en la cartelera, `?status=` en mis tickets), para que se puedan compartir y sobrevivan a recargar. Al filtrar por artista se consulta `GET /api/artists/by-stage-name` para confirmar que existe y enlazar a su perfil (FR-FE-ART-003).
+- **Modo claro/oscuro** (FR-FE-GEN-004): por defecto sigue la preferencia del sistema y el botón de la barra (`ThemeToggle`) permite alternarlo. La elección se guarda en `localStorage` (`pulsepass.theme`), que es una preferencia y no un dato sensible; el token sigue solo en `sessionStorage`.
 
 ### Rutas
 
@@ -657,7 +658,7 @@ Cosas que el frontend necesitaría y la API actual no ofrece. Se resolvieron del
 
 ## Pruebas
 
-El backend tiene **173 pruebas** repartidas en cuatro niveles, el frontend **66** y además hay una suite E2E manual con Postman.
+El backend tiene **173 pruebas** repartidas en cuatro niveles, el frontend **71** y además hay una suite E2E manual con Postman.
 
 ### Backend
 
@@ -778,7 +779,7 @@ Levantan un **PostgreSQL real con Testcontainers** (no se usa H2), dejan que Fly
 
 ### Frontend
 
-**66 pruebas** en 10 archivos, con Vitest, Testing Library y `userEvent`. No hay mocks de módulos: las páginas se renderizan completas con el router, la sesión y TanStack Query, y la red se simula con **MSW**, que imita los endpoints del backend con sus mismos códigos de error. Así se prueba lo que ve el usuario.
+**71 pruebas** en 12 archivos, con Vitest, Testing Library y `userEvent`. No hay mocks de módulos: las páginas se renderizan completas con el router, la sesión y TanStack Query, y la red se simula con **MSW**, que imita los endpoints del backend con sus mismos códigos de error. Así se prueba lo que ve el usuario.
 
 | Archivo | Pruebas | Qué cubre |
 |---|---|---|
@@ -786,12 +787,14 @@ Levantan un **PostgreSQL real con Testcontainers** (no se usa H2), dejan que Fly
 | `layouts/__tests__/guards.test.tsx` | 5 | Guardas: anónimo al login con la ruta de origen, USER en `/admin` a `/403`, ADMIN entra, ruta inexistente a 404 y enlaces del menú según el rol |
 | `pages/__tests__/venues.test.tsx` | 5 | Lista y detalle de sedes, estado vacío, error con Reintentar y sede inexistente |
 | `pages/__tests__/artists.test.tsx` | 6 | Lista, detalle con sus eventos, estados vacíos, id no numérico e id inexistente |
-| `pages/__tests__/events-catalog.test.tsx` | 8 | Cartelera, estado vacío, filtros por texto y categoría en la URL (también al recargar), categoría inválida, eventos de un artista e inicio |
+| `pages/__tests__/events-catalog.test.tsx` | 10 | Cartelera, estado vacío, filtros por texto y categoría en la URL (también al recargar), categoría inválida, eventos de un artista, artista resuelto por nombre con enlace a su perfil, artista inexistente e inicio |
 | `pages/__tests__/event-detail.test.tsx` | 6 | Detalle, 404 como "Evento no disponible", `SOLD_OUT` con compra deshabilitada, anónimo al login, USER elige el tipo y STAFF sin panel de compra |
 | `pages/__tests__/admin.test.tsx` | 9 | Crear evento (campos vacíos sin peticiones, 400 por campo, 409 duplicado), publicar (y su 409), asociar artistas (y su 409) y USER sin acceso |
-| `pages/__tests__/auth.test.tsx` | 8 | Login válido y con 401, campos vacíos, registro (clave corta, 201 y 409 genérico), cerrar sesión y token vencido al restaurar |
+| `pages/__tests__/auth.test.tsx` | 9 | Login válido y con 401, campos vacíos, registro (clave corta, contraseñas distintas, 201 y 409 genérico), cerrar sesión y token vencido al restaurar |
 | `pages/__tests__/tickets.test.tsx` | 9 | Compra (201, 409 y email de la sesión), mis tickets con filtro y vacío, cancelación (200 y 409), ticket ajeno y botón Cancelar solo en PAID |
 | `pages/__tests__/staff.test.tsx` | 4 | Validación de ingreso (éxito, segunda vez con 409, ticket inexistente) y tabla de tickets pagados |
+| `components/__tests__/PasswordField.test.tsx` | 1 | Mostrar y ocultar la contraseña sin borrar lo escrito |
+| `components/__tests__/ThemeToggle.test.tsx` | 1 | Alternar entre claro y oscuro y recordar la elección |
 
 ```bash
 cd pulsepass-web
@@ -858,5 +861,7 @@ En cada fase se subió primero a `main` una base común pequeña (dependencias, 
 | Frontend | `main` (base) | Proyecto Vite, configuración, contratos zod, cliente HTTP, sesión, layouts, guardas, router y utilidades de prueba |
 | | `feature/frontend-events-artists-venues` | Inicio, cartelera, detalle de evento y panel de compra, artistas, sedes y panel ADMIN |
 | | `feature/frontend-users-tickets` | Login, registro, cuenta, compra y confirmación, mis tickets, cancelación y páginas de STAFF |
+| | `feature/artist-by-stage-name` | Resolver el artista por nombre en la cartelera (`by-stage-name`) y tiempo de espera de las pruebas ampliado a 5 s |
+| | `feature/password-toggle-theme` | Ver contraseña, confirmar contraseña en el registro y modo claro/oscuro |
 
 Como cada bloque crea sus propios archivos, las ramas se integran sin conflictos. Los mensajes de commit y las pruebas hacen referencia a los identificadores del PRD (por ejemplo, `FR-TKT-003` o `TEST-CTRL-EVT-001`) cuando corresponde.

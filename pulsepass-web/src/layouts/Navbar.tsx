@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router'
 import { useAuth } from '../features/auth/hooks'
 import { ROUTES } from '../lib/routes'
+import ThemeToggle from '../components/ThemeToggle'
 import UserMenu from './UserMenu'
 
 interface NavItem {
@@ -70,6 +71,9 @@ export default function Navbar() {
             </>
           )}
         </div>
+
+        {/* Siempre visible, en escritorio y en móvil */}
+        <ThemeToggle />
 
         {/* Móvil (< md) */}
         <button

@@ -11,6 +11,14 @@
       rel="stylesheet"
     />
     <title>PulsePass</title>
+        <script>
+          // Aplica el tema antes de pintar la página, para que no "parpadee" en claro
+          try {
+            const saved = localStorage.getItem('pulsepass.theme')
+            const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+            if (dark) document.documentElement.classList.add('dark')
+          } catch {}
+        </script>
   </head>
   <body>
     <div id="root"></div>

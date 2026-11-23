@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router'
 import Button from '../components/Button'
+import PasswordField from '../components/PasswordField'
 import TextField from '../components/TextField'
 import { applyFieldErrors } from '../features/users/form-errors'
 import { useRegisterUser } from '../features/users/hooks'
-import { RegisterUserRequestSchema, type RegisterUserRequest } from '../features/users/types'
+import { RegisterFormSchema, type RegisterFormValues } from '../features/users/types'
 import { ApiError, getErrorMessage } from '../lib/http'
 import { ROUTES } from '../lib/routes'
 
@@ -20,12 +21,14 @@ export default function Register() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<RegisterUserRequest>({ resolver: zodResolver(RegisterUserRequestSchema) })
+  } = useForm<RegisterFormValues>({ resolver: zodResolver(RegisterFormSchema) })
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null)
+    // Se separa confirmPassword: el backend solo recibe los campos de RegisterUserRequest
+    const { confirmPassword: _confirmPassword, ...request } = values
     try {
-      await registerUser.mutateAsync(values)
+      await registerUser.mutateAsync(request)
       navigate(ROUTES.login, { state: { registered: true } })
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 409) {
@@ -75,12 +78,17 @@ export default function Register() {
           error={errors.birthDate?.message}
           {...register('birthDate')}
         />
-        <TextField
+        <PasswordField
           label="Contraseña (mín. 12 caracteres)"
-          type="password"
           autoComplete="new-password"
           error={errors.password?.message}
           {...register('password')}
+        />
+        <PasswordField
+          label="Confirmar contraseña"
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
         />
 
         {formError && (

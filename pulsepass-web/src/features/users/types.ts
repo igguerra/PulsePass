@@ -31,3 +31,13 @@ export const RegisterUserRequestSchema = z.object({
     .refine((p) => new TextEncoder().encode(p).length <= 72, 'La contraseña es demasiado larga'),
 })
 export type RegisterUserRequest = z.infer<typeof RegisterUserRequestSchema>
+
+// Lo que tiene el FORMULARIO: lo mismo + "confirmar contraseña".
+// confirmPassword solo existe en el cliente: nunca se envía al backend.
+export const RegisterFormSchema = RegisterUserRequestSchema.extend({
+  confirmPassword: z.string().min(1, 'Repite la contraseña'),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
+})
+export type RegisterFormValues = z.infer<typeof RegisterFormSchema>

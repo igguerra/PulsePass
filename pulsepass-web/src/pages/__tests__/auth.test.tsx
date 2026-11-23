@@ -17,7 +17,7 @@ async function fillLogin(user: UserEvent, identifier: string, password: string) 
   await user.click(screen.getByRole('button', { name: 'Ingresar' }))
 }
 
-async function fillRegister(user: UserEvent, password: string) {
+async function fillRegister(user: UserEvent, password: string, confirmPassword = password) {
   await screen.findByRole('heading', { name: 'Crea tu cuenta' })
   await user.type(screen.getByLabelText('Nombre de usuario'), 'nuevo.usuario')
   await user.type(screen.getByLabelText('Correo electrónico'), 'nuevo@pulsepass.test')
@@ -25,6 +25,7 @@ async function fillRegister(user: UserEvent, password: string) {
   await user.type(screen.getByLabelText('Apellidos'), 'Usuario')
   fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '1998-04-12' } })
   await user.type(screen.getByLabelText('Contraseña (mín. 12 caracteres)'), password)
+  await user.type(screen.getByLabelText('Confirmar contraseña'), confirmPassword)
 }
 
 describe('Autenticación', () => {
@@ -84,6 +85,24 @@ describe('Autenticación', () => {
     expect(
       await screen.findByText('La contraseña debe tener al menos 12 caracteres'),
     ).toBeInTheDocument()
+    expect(calls).toBe(0)
+  })
+
+  it('registro con contraseñas distintas → error y 0 peticiones', async () => {
+    let calls = 0
+    server.use(
+      http.post('*/api/users', () => {
+        calls += 1
+        return HttpResponse.json({}, { status: 201 })
+      }),
+    )
+    const user = userEvent.setup()
+    renderWithProviders({ route: '/registro' })
+
+    await fillRegister(user, 'contraseña-segura-123', 'otra-contraseña-123')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(await screen.findByText('Las contraseñas no coinciden')).toBeInTheDocument()
     expect(calls).toBe(0)
   })
 

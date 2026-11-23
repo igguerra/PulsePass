@@ -73,6 +73,19 @@ describe('Cartelera', () => {
     expect(await screen.findByRole('link', { name: 'Caribbean Music Fest 2026' })).toBeInTheDocument()
     expect(await screen.findByRole('combobox', { name: 'Artista' })).toHaveValue('Solar Beat')
   })
+
+  it('TEST-FE-ART-004: con ?artista= resuelve el artista por nombre y enlaza a su perfil', async () => {
+    renderWithProviders({ route: '/eventos?artista=Solar%20Beat' })
+    const banner = await screen.findByText(/Eventos de/)
+    expect(within(banner).getByText('Solar Beat')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver perfil del artista →' })).toHaveAttribute('href', '/artistas/1')
+  })
+
+  it('TEST-FE-ART-005: artista inexistente en ?artista= → aviso "No encontramos al artista"', async () => {
+    server.use(http.get('*/api/events/by-artist', () => HttpResponse.json([])))
+    renderWithProviders({ route: '/eventos?artista=Artista%20Fantasma' })
+    expect(await screen.findByText('No encontramos al artista “Artista Fantasma”.')).toBeInTheDocument()
+  })
 })
 
 describe('Inicio', () => {

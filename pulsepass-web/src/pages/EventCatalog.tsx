@@ -7,6 +7,7 @@ import EventFiltersBar from '../features/events/components/EventFiltersBar'
 import { filterEvents, readEventFilters } from '../features/events/filters'
 import { useEventsByArtist, usePublishedEvents } from '../features/events/hooks'
 import { getErrorMessage } from '../lib/http'
+import ArtistFilterBanner from '../features/artists/components/ArtistFilterBanner'
 
 export default function EventCatalog() {
   // FR-FE-EVT-002: los filtros viven en la URL (?q=&categoria=&artista=) → compartibles y sobreviven a recargar
@@ -37,6 +38,8 @@ export default function EventCatalog() {
       <h1 className="text-2xl font-bold">Cartelera</h1>
 
       <EventFiltersBar filters={filters} onChange={updateFilter} onClear={() => setSearchParams({}, { replace: true })} />
+
+      {filters.artist && <ArtistFilterBanner stageName={filters.artist} />}
 
       {query.isPending ? (
         <Loading label="Cargando eventos…" />
